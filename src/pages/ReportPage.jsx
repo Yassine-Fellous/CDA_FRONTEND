@@ -1,0 +1,520 @@
+import React, { useState, useEffect } from 'react';
+import { Camera, AlertTriangle, Send, ArrowLeft, LogIn, UserPlus } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth.jsx';
+import { reportService } from '../services/api/reportService';
+
+const ReportPage = () => {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const { user, isAuthenticated } = useAuth();
+    
+    // Récupérer les paramètres de l'URL
+    const equipmentId = searchParams.get('equipmentId');
+    const equipmentName = searchParams.get('equipmentName');
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    const address = searchParams.get('address');
+
+    const [formData, setFormData] = useState({
+        message: '',
+        type: '',
+        images: [],
+        // Données pour l'identification de l'installation
+        installationId: equipmentId || null,
+        installationName: equipmentName || ''
+    });
+
+    const [errors, setErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+    const [formCompleted, setFormCompleted] = useState(false);
+
+    // Si l'utilisateur se connecte et que le formulaire était complété, soumettre automatiquement
+    useEffect(() => {
+        if (isAuthenticated && formCompleted && showAuthPrompt) {
+            setShowAuthPrompt(false);
+            submitFormData();
+        }
+    }, [isAuthenticated, formCompleted, showAuthPrompt]);
+
+    // Restaurer le formulaire depuis sessionStorage si disponible
+    useEffect(() => {
+        const pendingReport = sessionStorage.getItem('pendingReport');
+        if (pendingReport) {
+            try {
+                const { formData: savedFormData } = JSON.parse(pendingReport);
+                setFormData(prev => ({ ...prev, ...savedFormData }));
+                sessionStorage.removeItem('pendingReport');
+            } catch (error) {
+                console.error('Error restoring pending report:', error);
+                sessionStorage.removeItem('pendingReport');
+            }
+        }
+    }, []);
+
+    // Rediriger vers la connexion avec le formulaire en mémoire
+    const handleLoginRedirect = () => {
+        // Sauvegarder le formulaire dans sessionStorage
+        sessionStorage.setItem('pendingReport', JSON.stringify({
+            formData,
+            equipmentId,
+            equipmentName
+        }));
+        
+        // Rediriger vers la page de connexion avec paramètre redirect
+        navigate('/login?redirect=report');
+    };
+
+    // Rediriger vers l'inscription
+    const handleRegisterRedirect = () => {
+        // Sauvegarder le formulaire dans sessionStorage
+        sessionStorage.setItem('pendingReport', JSON.stringify({
+            formData,
+            equipmentId,
+            equipmentName
+        }));
+        
+        // Rediriger vers la page d'inscription avec paramètre redirect
+        navigate('/register?redirect=report');
+    };
+
+    // Types de problèmes correspondant au champ 'type' du modèle
+    const problemTypes = [
+        { value: 'Équipement endommagé', label: 'Équipement endommagé' },
+        { value: 'Problème de maintenance', label: 'Problème de maintenance' },
+        { value: 'Problème de sécurité', label: 'Problème de sécurité (TEST ERREUR)' },
+        { value: 'Problème de propreté', label: 'Problème de propreté' },
+        { value: 'Problème d\'accès', label: 'Problème d\'accès' },
+        { value: 'Problème d\'éclairage', label: 'Problème d\'éclairage' },
+        { value: 'Surface dégradée', label: 'Surface dégradée' },
+        { value: 'Autre', label: 'Autre problème' }
+    ];
+
+    // Handle image upload
+    const handleImageUpload = (event) => {
+        const files = Array.from(event.target.files);
+        const maxSize = 5 * 1024 * 1024; // 5MB par fichier
+        const maxFiles = 3; // Limité à 3 images
+
+        if (formData.images.length + files.length > maxFiles) {
+            setErrors(prev => ({ ...prev, images: `Maximum ${maxFiles} images autorisées` }));
+            return;
+        }
+
+        const validFiles = files.filter(file => {
+            if (file.size > maxSize) {
+                setErrors(prev => ({ ...prev, images: 'Fichier trop volumineux (max 5MB)' }));
+                return false;
+            }
+            if (!file.type.startsWith('image/')) {
+                setErrors(prev => ({ ...prev, images: 'Seules les images sont autorisées' }));
+                return false;
+            }
+            return true;
+        });
+
+        validFiles.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setFormData(prev => ({
+                    ...prev,
+                    images: [...prev.images, {
+                        file,
+                        preview: e.target.result,
+                        id: Date.now() + Math.random()
+                    }]
+                }));
+            };
+            reader.readAsDataURL(file);
+        });
+
+        setErrors(prev => ({ ...prev, images: '' }));
+    };
+
+    // Remove image
+    const removeImage = (imageId) => {
+        setFormData(prev => ({
+            ...prev,
+            images: prev.images.filter(img => img.id !== imageId)
+        }));
+    };
+
+    // Validation
+    const validateForm = () => {
+        const newErrors = {};
+
+        if (!formData.type) {
+            newErrors.type = 'Veuillez sélectionner un type de problème';
+        }
+
+        if (!formData.message.trim()) {
+            newErrors.message = 'Veuillez décrire le problème';
+        } else if (formData.message.length < 10) {
+            newErrors.message = 'Description trop courte (minimum 10 caractères)';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    // Soumettre les données du formulaire
+    const submitFormData = async () => {
+        setIsSubmitting(true);
+        setErrors({});
+
+        try {
+            console.log('🚀 Début de soumission du formulaire...');
+
+            // Upload des images si présentes
+            let imagesUrl = null;
+            if (formData.images.length > 0) {
+                console.log('📸 Upload des images...');
+                imagesUrl = await reportService.uploadImages(formData.images);
+                console.log('✅ Images uploadées:', imagesUrl);
+            }
+
+            // Préparer les données exactement comme attendu par le modèle Django
+            const reportData = {
+                message: formData.message.trim(),
+                images_url: imagesUrl, // URL des images uploadées ou null
+                type: formData.type,
+                etat: 'Nouveau', // État par défaut
+                installation: formData.installationId // ID de l'installation
+            };
+
+            console.log('📤 Envoi des données:', reportData);
+
+            // Appel au service
+            const response = await reportService.submitReport(reportData);
+            
+            console.log('✅ Réponse reçue:', response);
+
+            // Nettoyer le sessionStorage
+            sessionStorage.removeItem('pendingReport');
+
+            // Rediriger vers la carte avec message de succès
+            navigate('/map', { 
+                state: { 
+                    message: 'Signalement envoyé avec succès !',
+                    type: 'success',
+                    reportId: response.id
+                }
+            });
+
+        } catch (error) {
+            console.error('❌ Erreur soumission:', error);
+            
+            // Gestion spécifique des erreurs
+            let errorMessage = 'Erreur lors de l\'envoi du signalement';
+            
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                errorMessage = 'Erreur de connexion. Vérifiez votre connexion internet.';
+            } else if (error.name === 'SyntaxError') {
+                errorMessage = 'Erreur de communication avec le serveur.';
+            }
+            
+            setErrors(prev => ({
+                ...prev,
+                submit: errorMessage
+            }));
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Handle form submission
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        console.log('📝 Soumission du formulaire...');
+        console.log('📊 Données actuelles:', formData);
+        console.log('🔐 Authentifié:', isAuthenticated);
+
+        if (!validateForm()) {
+            console.log('❌ Validation échouée');
+            return;
+        }
+
+        // Si l'utilisateur est déjà connecté, soumettre directement
+        if (isAuthenticated) {
+            console.log('✅ Utilisateur connecté, soumission directe');
+            await submitFormData();
+            return;
+        }
+
+        // Sinon, marquer le formulaire comme complété et demander l'authentification
+        console.log('🔑 Authentification requise');
+        setFormCompleted(true);
+        setShowAuthPrompt(true);
+    };
+
+    // Handle input changes
+    const handleInputChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+
+        // Clear error when user starts typing
+        if (errors[field]) {
+            setErrors(prev => ({ ...prev, [field]: '' }));
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <div className="bg-white shadow-sm border-b">
+                <div className="max-w-2xl mx-auto px-4 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <ArrowLeft className="w-5 h-5 text-gray-600" />
+                            </button>
+                            <h1 className="text-xl font-semibold text-gray-900">
+                                Signaler un problème
+                            </h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="max-w-2xl mx-auto px-4 py-8">
+                {/* Authentication Prompt */}
+                {showAuthPrompt && !isAuthenticated ? (
+                    <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                        <div className="mb-6">
+                            <AlertTriangle className="w-20 h-20 mx-auto text-blue-500 mb-4" />
+                            <h2 className="text-2xl font-semibold text-gray-900 mb-3">
+                                Presque terminé !
+                            </h2>
+                            <p className="text-gray-600 text-lg mb-8">
+                                Votre signalement est prêt. Pour l'envoyer, vous devez vous connecter ou créer un compte.
+                            </p>
+                        </div>
+                        
+                        <div className="space-y-4 max-w-sm mx-auto">
+                            <button
+                                onClick={handleLoginRedirect}
+                                className="w-full flex items-center justify-center bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                            >
+                                <LogIn className="w-5 h-5 mr-3" />
+                                Se connecter
+                            </button>
+                            
+                            <button
+                                onClick={handleRegisterRedirect}
+                                className="w-full flex items-center justify-center bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                            >
+                                <UserPlus className="w-5 h-5 mr-3" />
+                                Créer un compte
+                            </button>
+                            
+                            <button
+                                onClick={() => setShowAuthPrompt(false)}
+                                className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                            >
+                                Retour au formulaire
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    /* Formulaire */
+                    <div className="bg-white rounded-lg shadow-sm">
+                        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                            {/* Debug Info (en mode développement) */}
+                            {import.meta.env.DEV && (
+                                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                    <p><strong>🧪 Mode Debug:</strong></p>
+                                    <p>Authentifié: {isAuthenticated ? '✅' : '❌'}</p>
+                                    <p>Utilisateur: {user?.username || 'Non connecté'}</p>
+                                    <p>Installation ID: {formData.installationId || 'Aucune'}</p>
+                                </div>
+                            )}
+
+                            {/* User Info Display (if authenticated) */}
+                            {isAuthenticated && user && (
+                                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                                    <p className="text-sm font-medium text-green-800">
+                                        Connecté en tant que: {user.name || user.username}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Equipment Info (if provided) */}
+                            {formData.installationName && (
+                                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                    <div className="flex items-center">
+                                        <AlertTriangle className="w-5 h-5 text-blue-600 mr-2" />
+                                        <div>
+                                            <p className="text-sm font-medium text-blue-800">
+                                                Signalement pour :
+                                            </p>
+                                            <p className="text-blue-700">{formData.installationName}</p>
+                                            {formData.installationId && (
+                                                <p className="text-xs text-blue-600">ID: {formData.installationId}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Type de problème */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-3">
+                                    Quel est le problème ? *
+                                </label>
+                                <select
+                                    value={formData.type}
+                                    onChange={(e) => handleInputChange('type', e.target.value)}
+                                    className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500  bg-white text-gray-700 ${
+                                        errors.type ? 'border-red-500' : 'border-gray-300'
+                                    }`}
+                                >
+                                    <option value="" className="text-black">Sélectionnez le type de problème</option>
+                                    {problemTypes.map(type => (
+                                        <option key={type.value} value={type.value} className="text-black">
+                                            {type.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.type && (
+                                    <p className="mt-2 text-sm text-red-600">{errors.type}</p>
+                                )}
+                            </div>
+
+                            {/* Message */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-3">
+                                    Décrivez le problème *
+                                </label>
+                                <textarea
+                                    value={formData.message}
+                                    onChange={(e) => handleInputChange('message', e.target.value)}
+                                    placeholder="Expliquez en détail ce qui ne va pas avec cet équipement... (Tapez 'erreur' pour tester la gestion d'erreur)"
+                                    rows={5}
+                                    maxLength={1000}
+                                    className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-base bg-white text-black ${
+                                        errors.message ? 'border-red-500' : 'border-gray-300'
+                                    }`}
+                                />
+                                <div className="flex justify-between mt-2">
+                                    {errors.message && (
+                                        <p className="text-sm text-red-600">{errors.message}</p>
+                                    )}
+                                    <p className="text-sm text-gray-500 ml-auto">
+                                        {formData.message.length}/1000
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Images */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-3">
+                                    Photos (optionnel)
+                                </label>
+                                <p className="text-sm text-gray-500 mb-3">
+                                    Ajoutez jusqu'à 3 photos pour illustrer le problème
+                                </p>
+                                <div className="space-y-4">
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                        className="hidden"
+                                        id="image-upload"
+                                        disabled={formData.images.length >= 3}
+                                    />
+                                    
+                                    {formData.images.length < 3 && (
+                                        <label
+                                            htmlFor="image-upload"
+                                            className="w-full flex items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer"
+                                        >
+                                            <Camera className="w-6 h-6 mr-3 text-gray-400" />
+                                            <span className="text-gray-600 text-base">
+                                                {formData.images.length === 0 
+                                                    ? 'Ajouter des photos' 
+                                                    : `Ajouter une photo (${formData.images.length}/3)`
+                                                }
+                                            </span>
+                                        </label>
+                                    )}
+
+                                    {/* Image Previews */}
+                                    {formData.images.length > 0 && (
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {formData.images.map(image => (
+                                                <div key={image.id} className="relative">
+                                                    <img
+                                                        src={image.preview}
+                                                        alt="Preview"
+                                                        className="w-full h-40 object-cover rounded-lg border"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeImage(image.id)}
+                                                        className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600 shadow-lg"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {errors.images && (
+                                        <p className="text-sm text-red-600">{errors.images}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Submit Error */}
+                            {errors.submit && (
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    <p className="text-sm text-red-600 flex items-center">
+                                        <AlertTriangle className="w-5 h-5 mr-2" />
+                                        {errors.submit}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Submit Button */}
+                            <div className="pt-4">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-base"
+                                >
+                                    {isSubmitting ? (
+                                        <div className="flex items-center">
+                                            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                            Envoi en cours...
+                                        </div>
+                                    ) : isAuthenticated ? (
+                                        <>
+                                            <Send className="w-5 h-5 mr-3" />
+                                            Envoyer le signalement
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send className="w-5 h-5 mr-3" />
+                                            Continuer vers la connexion
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default ReportPage;
