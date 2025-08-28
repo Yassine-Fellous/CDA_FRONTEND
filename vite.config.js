@@ -10,12 +10,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  // Configuration pour Railway
+  // Configuration pour Docker
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    minify: 'terser',
-    sourcemap: false, // Désactiver en production pour réduire la taille
+    minify: 'esbuild', // Forcer esbuild au lieu de terser
+    sourcemap: false,
+    target: 'es2015',
     rollupOptions: {
       output: {
         manualChunks: {
@@ -26,14 +27,16 @@ export default defineConfig({
       }
     }
   },
-  // Configuration du serveur pour Railway
   server: {
     host: '0.0.0.0',
     port: process.env.PORT || 5173
-  },
-  preview: {
-    host: '0.0.0.0',
-    port: process.env.PORT || 4173,
-    strictPort: true
   }
 })
+
+// scripts:
+// "dev": "vite",
+// "build": "vite build",
+// "preview": "vite preview",
+// "docker:build": "docker build -t sportmap-frontend .",
+// "docker:run": "docker run -p 8080:80 sportmap-frontend",
+// "docker:dev": "docker build -t sportmap-frontend . && docker run -p 8080:80 sportmap-frontend"

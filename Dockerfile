@@ -7,11 +7,21 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies including dev dependencies for build
-RUN npm ci --include=dev
+# Install dependencies
+RUN npm ci
 
 # Copy source code
 COPY . .
+
+# Build arguments depuis Railway
+ARG VITE_MAPBOX_TOKEN
+ARG VITE_API_URL
+ARG NODE_ENV=production
+
+# Set environment variables pour le build
+ENV VITE_MAPBOX_TOKEN=$VITE_MAPBOX_TOKEN
+ENV VITE_API_URL=$VITE_API_URL
+ENV NODE_ENV=$NODE_ENV
 
 # Build the application
 RUN npm run build
@@ -19,14 +29,12 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine AS production
 
-# Copy built files from builder stage
+# Copy built files
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
+# Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Expose port
 EXPOSE 80
 
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

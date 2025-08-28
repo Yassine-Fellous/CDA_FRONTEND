@@ -1,14 +1,13 @@
 # Configuration Railway pour SportMap Frontend avec Docker
 version: 2
 
-# Utiliser Docker
+# Utiliser Docker avec variables d'environnement
 build:
   dockerfile: Dockerfile
-  # Passer les variables d'environnement au build Docker
+  # Passer les variables Railway au build Docker
   args:
     VITE_MAPBOX_TOKEN: $VITE_MAPBOX_TOKEN
     VITE_API_URL: $VITE_API_URL
-    VITE_ENABLE_MOCK: false
     NODE_ENV: production
 
 # Configuration du déploiement
@@ -19,12 +18,11 @@ deploy:
     timeout: 30
     interval: 10
 
-# Variables d'environnement
+# Variables d'environnement Railway
 environments:
   production:
     VITE_MAPBOX_TOKEN: $VITE_MAPBOX_TOKEN
     VITE_API_URL: $VITE_API_URL
-    VITE_ENABLE_MOCK: false
     NODE_ENV: production
 
 # Configuration des ressources
