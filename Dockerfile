@@ -35,6 +35,14 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
-EXPOSE 80
+# Exposer le port que Railway va utiliser
+EXPOSE $PORT
 
-CMD ["nginx", "-g", "daemon off;"]
+# Script de démarrage pour utiliser le port dynamique de Railway
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo 'envsubst "\$PORT" < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp' >> /start.sh && \
+    echo 'mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf' >> /start.sh && \
+    echo 'nginx -g "daemon off;"' >> /start.sh && \
+    chmod +x /start.sh
+
+CMD ["/start.sh"]

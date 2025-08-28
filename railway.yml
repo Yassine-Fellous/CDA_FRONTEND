@@ -1,31 +1,26 @@
 # Configuration Railway pour SportMap Frontend avec Docker
 version: 2
 
-# Utiliser Docker avec variables d'environnement
 build:
   dockerfile: Dockerfile
-  # Passer les variables Railway au build Docker
   args:
     VITE_MAPBOX_TOKEN: $VITE_MAPBOX_TOKEN
     VITE_API_URL: $VITE_API_URL
     NODE_ENV: production
 
-# Configuration du déploiement
 deploy:
-  port: 80
+  # Railway injecte automatiquement $PORT
   healthcheck:
     path: /health
     timeout: 30
     interval: 10
 
-# Variables d'environnement Railway
 environments:
   production:
     VITE_MAPBOX_TOKEN: $VITE_MAPBOX_TOKEN
     VITE_API_URL: $VITE_API_URL
     NODE_ENV: production
 
-# Configuration des ressources
 resources:
   memory: 1Gi
   cpu: 1000m
