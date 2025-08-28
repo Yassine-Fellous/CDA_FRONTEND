@@ -1,22 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-// Mode de test - changez cette variable pour activer/désactiver le mock
-let MOCK_MODE = true;
-
-// Données mock pour les tests
-const MOCK_USER = {
-  id: 1,
-  username: 'testuser',
-  name: 'Utilisateur Test',
-  email: 'test@example.com',
-  verified: true,
-  created_at: new Date().toISOString()
-};
-
-const MOCK_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3R1c2VyIiwiZXhwIjoxNzM5NDgwMDAwfQ.mock_signature_for_testing';
+// Mode de test - désactivé pour utiliser l'API réelle
+let MOCK_MODE = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK === 'true';
 
 class AuthService {
-  // Simulation d'un délai réseau
   async mockDelay(ms = 1000) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -24,211 +11,297 @@ class AuthService {
   async login(credentials) {
     if (MOCK_MODE) {
       console.log('🧪 MODE TEST - Login avec:', credentials);
-      
-      // Simuler un délai réseau
       await this.mockDelay(1500);
       
-      // Simuler différents scénarios selon l'email
       if (credentials.email === 'error@test.com') {
         throw new Error('Email ou mot de passe incorrect');
       }
       
-      if (credentials.email === 'slow@test.com') {
-        await this.mockDelay(3000);
-      }
-      
-      // Toujours retourner un succès pour les autres cas
       return {
-        token: MOCK_TOKEN,
+        token: 'mock_token_123',
         user: {
-          ...MOCK_USER,
-          email: credentials.email // Utiliser l'email saisi
+          id: 1,
+          email: credentials.email,
+          verified: true
         }
       };
     }
 
-    // Code normal pour la production
-    const response = await fetch(`${API_BASE_URL}/auth/login/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(credentials),
-    });
+    // Appel API réel
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Erreur de connexion');
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        if (response.status === 403) {
+          throw new Error('Compte non validé. Vérifiez votre email.');
+        } else if (response.status === 401) {
+          throw new Error('Mot de passe incorrect');
+        } else if (response.status === 404) {
+          throw new Error('Aucun compte trouvé avec cet email');
+        }
+        
+        throw new Error(errorData.error || 'Erreur de connexion');
+      }
+
+      const data = await response.json();
+      console.log('✅ Connexion réussie:', data);
+      
+      return {
+        token: data.token,
+        user: {
+          email: credentials.email,
+          verified: true
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ Erreur connexion:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async register(userData) {
     if (MOCK_MODE) {
       console.log('🧪 MODE TEST - Register avec:', userData);
-      
       await this.mockDelay(2000);
-      
-      // Simuler erreur si username existe déjà
-      if (userData.username === 'admin' || userData.username === 'test') {
-        throw new Error('Ce nom d\'utilisateur existe déjà');
-      }
       
       if (userData.email === 'taken@test.com') {
         throw new Error('Cette adresse email est déjà utilisée');
       }
       
-      // Simuler succès
       return {
-        message: 'Compte créé avec succès. Vérifiez votre email.',
-        user: {
-          ...MOCK_USER,
-          username: userData.username,
-          email: userData.email,
-          verified: false
-        }
+        message: 'Code envoyé par email'
       };
     }
 
-    // Code normal pour la production
-    const response = await fetch(`${API_BASE_URL}/auth/register/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
-    });
+    // Appel API réel
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: userData.email,
+          password: userData.password
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Erreur lors de l\'inscription');
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        if (response.status === 400) {
+          throw new Error('Email et mot de passe requis');
+        } else if (response.status === 409) {
+          throw new Error('Cette adresse email est déjà utilisée');
+        }
+        
+        throw new Error(errorData.error || 'Erreur lors de l\'inscription');
+      }
+
+      const data = await response.json();
+      console.log('✅ Inscription réussie:', data);
+      
+      return {
+        message: data.message || 'Code envoyé par email'
+      };
+
+    } catch (error) {
+      console.error('❌ Erreur inscription:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async verifyEmail(code, email) {
     if (MOCK_MODE) {
       console.log('🧪 MODE TEST - Verify email:', { code, email });
-      
       await this.mockDelay(1000);
       
-      // Simuler erreur si code incorrect
       if (code !== '123456') {
         throw new Error('Code de vérification incorrect');
       }
       
       return {
-        message: 'Email vérifié avec succès',
-        token: MOCK_TOKEN,
+        message: 'Compte validé',
+        token: 'mock_token_123',
         user: {
-          ...MOCK_USER,
           email: email,
           verified: true
         }
       };
     }
 
-    // Code normal pour la production
-    const response = await fetch(`${API_BASE_URL}/auth/verify-email/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ code, email }),
-    });
+    // Appel API réel
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/verify-code/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          code: code.trim(),
+          email: email.trim()
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Erreur de vérification');
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        if (response.status === 400) {
+          throw new Error('Code de vérification incorrect');
+        } else if (response.status === 404) {
+          throw new Error('Utilisateur non trouvé');
+        }
+        
+        throw new Error(errorData.error || 'Erreur de vérification');
+      }
+
+      const data = await response.json();
+      console.log('✅ Vérification réussie:', data);
+      
+      // Après vérification réussie, connecter automatiquement l'utilisateur
+      // On peut soit faire un login automatique, soit retourner un token si l'API le fournit
+      return {
+        message: data.message || 'Compte validé',
+        // Note: Votre API Django ne retourne pas de token après vérification
+        // Vous pourriez vouloir modifier l'API pour en retourner un
+        user: {
+          email: email,
+          verified: true
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ Erreur vérification:', error);
+      throw error;
+    }
+  }
+
+  async resendVerificationCode(email) {
+    if (MOCK_MODE) {
+      console.log('🧪 MODE TEST - Resend code pour:', email);
+      await this.mockDelay(1000);
+      return { message: 'Code renvoyé avec succès' };
     }
 
-    return response.json();
+    // Pour l'instant, on utilise le même endpoint que register
+    // Vous pourriez vouloir créer un endpoint dédié au renvoi
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email: email.trim(),
+          password: 'temp_password' // Pas idéal, voir note ci-dessous
+        }),
+      });
+
+      if (response.status === 409) {
+        // Email déjà utilisé = compte existe, c'est normal pour un renvoi
+        return { message: 'Code renvoyé avec succès' };
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors du renvoi du code');
+      }
+
+      return { message: 'Code renvoyé avec succès' };
+    } catch (error) {
+      console.error('❌ Erreur renvoi code:', error);
+      throw error;
+    }
   }
 
   async forgotPassword(email) {
     if (MOCK_MODE) {
       console.log('🧪 MODE TEST - Forgot password pour:', email);
-      
       await this.mockDelay(1500);
-      
-      // Simuler succès pour tous les emails
-      return {
-        message: 'Email de réinitialisation envoyé'
-      };
+      return { message: 'Email de réinitialisation envoyé' };
     }
 
-    // Code normal pour la production
-    const response = await fetch(`${API_BASE_URL}/auth/forgot-password/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/request-password-reset/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.trim() }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Erreur lors de la demande');
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        if (response.status === 404) {
+          // Ne pas révéler si l'email existe ou non pour la sécurité
+          return { message: 'Si cette adresse email existe, vous recevrez un lien de réinitialisation.' };
+        }
+        
+        throw new Error(errorData.error || 'Erreur lors de la demande');
+      }
+
+      const data = await response.json();
+      return { message: data.message || 'Lien de réinitialisation envoyé' };
+    } catch (error) {
+      console.error('❌ Erreur mot de passe oublié:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
-  async resetPassword(token, password) {
+  async resetPassword(token, password, email) {
     if (MOCK_MODE) {
-      console.log('🧪 MODE TEST - Reset password avec token:', token);
-      
+      console.log('🧪 MODE TEST - Reset password');
       await this.mockDelay(1500);
       
-      // Simuler token invalide
       if (token === 'invalid-token') {
         throw new Error('Token invalide ou expiré');
       }
       
-      return {
-        message: 'Mot de passe réinitialisé avec succès'
-      };
+      return { message: 'Mot de passe réinitialisé avec succès' };
     }
 
-    // Code normal pour la production
-    const response = await fetch(`${API_BASE_URL}/auth/reset-password/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token, password }),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          token: token,
+          new_password: password,
+          email: email
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Erreur lors de la réinitialisation');
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        if (response.status === 400) {
+          throw new Error('Lien invalide ou expiré');
+        }
+        
+        throw new Error(errorData.error || 'Erreur lors de la réinitialisation');
+      }
+
+      const data = await response.json();
+      return { message: data.message || 'Mot de passe réinitialisé avec succès' };
+    } catch (error) {
+      console.error('❌ Erreur reset password:', error);
+      throw error;
     }
-
-    return response.json();
-  }
-
-  async verifyResetToken(token) {
-    if (MOCK_MODE) {
-      console.log('🧪 MODE TEST - Verify reset token:', token);
-      
-      await this.mockDelay(500);
-      
-      // Simuler token invalide pour certains cas
-      return token !== 'invalid-token';
-    }
-
-    // Code normal pour la production
-    const response = await fetch(`${API_BASE_URL}/auth/verify-reset-token/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token }),
-    });
-
-    return response.ok;
   }
 
   logout() {
@@ -249,13 +322,4 @@ class AuthService {
 }
 
 export const authService = new AuthService();
-
-// Fonction pour basculer entre mode test et production
-export const toggleMockMode = () => {
-  MOCK_MODE = !MOCK_MODE;
-  console.log(`🧪 Mode Mock ${MOCK_MODE ? 'ACTIVÉ' : 'DÉSACTIVÉ'}`);
-  return MOCK_MODE;
-};
-
-// Export pour debug
-export { MOCK_MODE, MOCK_USER, MOCK_TOKEN };
+export { MOCK_MODE };

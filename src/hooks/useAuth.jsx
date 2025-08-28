@@ -1,4 +1,4 @@
-import { useState, createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/api/authService';
 
 const AuthContext = createContext();
@@ -6,7 +6,7 @@ const AuthContext = createContext();
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
@@ -22,13 +22,11 @@ export const AuthProvider = ({ children }) => {
     
     if (token && userData) {
       try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
+        setUser(JSON.parse(userData));
+      } catch (err) {
+        console.error('Erreur parsing user data:', err);
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
-        setUser(null);
       }
     }
     setLoading(false);
@@ -41,7 +39,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.login(credentials);
       
-      // Stocker les données utilisateur
       localStorage.setItem('authToken', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
       setUser(response.user);
@@ -70,6 +67,45 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const verifyEmail = async (code, email) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await authService.verifyEmail(code, email);
+      
+      // Si la vérification réussit mais ne retourne pas de token,
+      // on peut soit faire un login automatique, soit demander à l'utilisateur de se connecter
+      if (response.token) {
+        localStorage.setItem('authToken', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        setUser(response.user);
+      }
+      
+      return response;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resendVerificationCode = async (email) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await authService.resendVerificationCode(email);
+      return response;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
@@ -77,20 +113,17 @@ export const AuthProvider = ({ children }) => {
     authService.logout();
   };
 
-  const updateUser = (updatedUser) => {
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-  };
-
   const value = {
     user,
     loading,
     error,
+    isAuthenticated: !!user && !!localStorage.getItem('authToken'),
     login,
     register,
+    verifyEmail,
+    resendVerificationCode,
     logout,
-    updateUser,
-    isAuthenticated: !!user
+    clearError: () => setError('')
   };
 
   return (
