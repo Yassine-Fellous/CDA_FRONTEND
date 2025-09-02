@@ -109,7 +109,7 @@ export default function Navigation() {
                   }`}
                   onClick={closeMenu}
                 >
-                  👤 {user.username}
+                  👤 {user.email.split('@')[0]} {/* Afficher la partie avant @ de l'email */}
                 </Link>
                 <button 
                   onClick={() => { logout(); closeMenu(); }}

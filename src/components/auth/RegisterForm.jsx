@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { FaUser, FaLock, FaEnvelope, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaLock, FaEnvelope, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useAuth } from '../../hooks/useAuth.jsx';
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
-    username: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -22,14 +21,6 @@ const RegisterForm = () => {
 
   const validateForm = () => {
     const newErrors = {};
-
-    if (!formData.username.trim()) {
-      newErrors.username = 'Nom d\'utilisateur requis';
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'Nom d\'utilisateur trop court (minimum 3 caractères)';
-    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      newErrors.username = 'Nom d\'utilisateur invalide (lettres, chiffres et _ uniquement)';
-    }
 
     if (!formData.email.trim()) {
       newErrors.email = 'Email requis';
@@ -76,7 +67,6 @@ const RegisterForm = () => {
 
     try {
       await register({
-        username: formData.username,
         email: formData.email,
         password: formData.password
       });
@@ -112,30 +102,6 @@ const RegisterForm = () => {
         {/* Form */}
         <div className="bg-white rounded-lg shadow-md p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Username */}
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Nom d'utilisateur
-              </label>
-              <div className="relative">
-                <input
-                  id="username"
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => handleInputChange('username', e.target.value)}
-                  placeholder="votre_nom_utilisateur"
-                  className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black placeholder-gray-500 bg-white ${
-                    errors.username ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  disabled={isSubmitting}
-                />
-                <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
-              </div>
-              {errors.username && (
-                <p className="mt-1 text-sm text-red-600">{errors.username}</p>
-              )}
-            </div>
-
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -152,6 +118,7 @@ const RegisterForm = () => {
                     errors.email ? 'border-red-500' : 'border-gray-300'
                   }`}
                   disabled={isSubmitting}
+                  required
                 />
                 <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
               </div>
@@ -176,6 +143,7 @@ const RegisterForm = () => {
                     errors.password ? 'border-red-500' : 'border-gray-300'
                   }`}
                   disabled={isSubmitting}
+                  required
                 />
                 <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                 <button
@@ -211,6 +179,7 @@ const RegisterForm = () => {
                     errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                   }`}
                   disabled={isSubmitting}
+                  required
                 />
                 <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                 <button

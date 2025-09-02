@@ -74,12 +74,16 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.verifyEmail(code, email);
       
-      // Si la vérification réussit mais ne retourne pas de token,
-      // on peut soit faire un login automatique, soit demander à l'utilisateur de se connecter
+      // Si la vérification réussit et retourne un token
       if (response.token) {
+        const user = {
+          email: email,
+          verified: true
+        };
+        
         localStorage.setItem('authToken', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        setUser(response.user);
+        localStorage.setItem('user', JSON.stringify(user));
+        setUser(user);
       }
       
       return response;
