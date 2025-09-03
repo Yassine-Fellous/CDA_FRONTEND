@@ -1,12 +1,30 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-// Mode de test - changez cette variable pour activer/désactiver le mock
-const MOCK_MODE = true;
+// Mode de test - désactivé pour utiliser l'API réelle
+const MOCK_MODE = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK === 'true';
 
 class ReportService {
   // Simulation d'un délai réseau
   async mockDelay(ms = 1000) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Vérifier si l'utilisateur est connecté
+  isUserAuthenticated() {
+    const token = localStorage.getItem('authToken');
+    const user = localStorage.getItem('user');
+    return !!(token && user);
+  }
+
+  // Récupérer les données utilisateur
+  getCurrentUser() {
+    try {
+      const userData = localStorage.getItem('user');
+      return userData ? JSON.parse(userData) : null;
+    } catch (error) {
+      console.error('Erreur parsing user data:', error);
+      return null;
+    }
   }
 
   async submitReport(reportData) {
@@ -36,7 +54,6 @@ class ReportService {
         installation: reportData.installation,
         utilisateur: {
           id: 1,
-          username: 'testuser',
           email: 'test@example.com'
         },
         created_at: new Date().toISOString(),
@@ -47,29 +64,69 @@ class ReportService {
       return mockResponse;
     }
 
-    // Code normal pour la production
+    // Vérifier si l'utilisateur est connecté
+    if (!this.isUserAuthenticated()) {
+      throw new Error('Vous devez être connecté pour envoyer un signalement.');
+    }
+
+    // Appel API réel
     try {
+      const token = localStorage.getItem('authToken');
+      const user = this.getCurrentUser();
+
+      console.log('📤 Envoi vers API:', `${API_BASE_URL}/signalements/`);
+      console.log('📋 Données:', reportData);
+      console.log('👤 Utilisateur:', user?.email);
+
       const response = await fetch(`${API_BASE_URL}/signalements/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(reportData)
       });
 
-      // Vérifier le content-type de la réponse
-      const contentType = response.headers.get('content-type');
-      
+      console.log('📥 Réponse status:', response.status);
+
       if (!response.ok) {
-        // Essayer de parser le JSON d'erreur si possible
+        // Gestion spécifique des erreurs d'authentification
+        if (response.status === 401) {
+          // Token invalide ou expiré - déconnecter l'utilisateur
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          throw new Error('Session expirée. Veuillez vous reconnecter.');
+        }
+
+        if (response.status === 403) {
+          throw new Error('Accès refusé. Permissions insuffisantes.');
+        }
+
+        // Tenter de parser la réponse d'erreur
+        const contentType = response.headers.get('content-type');
+        
         if (contentType && contentType.includes('application/json')) {
           try {
             const errorData = await response.json();
-            throw new Error(errorData.detail || errorData.message || 'Erreur lors de l\'envoi du signalement');
+            console.log('❌ Erreur API:', errorData);
+            
+            // Gestion des erreurs de validation spécifiques
+            if (errorData.installation) {
+              throw new Error('Installation non trouvée ou invalide.');
+            }
+            if (errorData.message) {
+              throw new Error(`Message invalide: ${errorData.message[0] || errorData.message}`);
+            }
+            if (errorData.type) {
+              throw new Error(`Type de problème invalide: ${errorData.type[0] || errorData.type}`);
+            }
+            
+            throw new Error(errorData.detail || errorData.error || errorData.message || 'Erreur lors de l\'envoi du signalement');
           } catch (jsonError) {
-            // Si le parsing JSON échoue, utiliser le status text
-            throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+            if (jsonError.message.includes('JSON')) {
+              throw new Error(`Erreur serveur ${response.status}: ${response.statusText}`);
+            }
+            throw jsonError;
           }
         } else {
           // Réponse non-JSON
@@ -79,18 +136,34 @@ class ReportService {
       }
 
       // Vérifier si la réponse contient du JSON
+      const contentType = response.headers.get('content-type');
+      
       if (contentType && contentType.includes('application/json')) {
-        return await response.json();
+        const data = await response.json();
+        console.log('✅ Signalement créé:', data);
+        return data;
       } else {
         // Si pas de JSON, retourner un objet de succès basique
+        console.log('✅ Signalement envoyé (réponse non-JSON)');
         return {
           success: true,
-          message: 'Signalement envoyé avec succès'
+          message: 'Signalement envoyé avec succès',
+          id: Date.now() // ID temporaire
         };
       }
 
     } catch (error) {
-      console.error('Erreur lors de l\'envoi du signalement:', error);
+      console.error('❌ Erreur lors de l\'envoi du signalement:', error);
+      
+      // Améliorer les messages d'erreur pour l'utilisateur
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('Erreur de connexion. Vérifiez votre connexion internet.');
+      }
+      
+      if (error.name === 'SyntaxError') {
+        throw new Error('Erreur de communication avec le serveur.');
+      }
+      
       throw error;
     }
   }
@@ -112,33 +185,111 @@ class ReportService {
 
     if (images.length === 0) return null;
 
+    // Vérifier si l'utilisateur est connecté pour l'upload
+    if (!this.isUserAuthenticated()) {
+      throw new Error('Vous devez être connecté pour uploader des images.');
+    }
+
     try {
+      const token = localStorage.getItem('authToken');
+
       // Créer FormData pour l'upload des images
       const formData = new FormData();
       images.forEach((image, index) => {
         formData.append(`image_${index}`, image.file);
       });
 
+      console.log('📤 Upload images vers:', `${API_BASE_URL}/upload-images/`);
+
       const response = await fetch(`${API_BASE_URL}/upload-images/`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${token}`
+          // Ne pas définir Content-Type pour FormData (le navigateur le fait automatiquement)
         },
         body: formData
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          throw new Error('Session expirée. Veuillez vous reconnecter.');
+        }
+        
         throw new Error('Erreur lors de l\'upload des images');
       }
 
       const data = await response.json();
-      return data.images_url || data.url;
+      console.log('✅ Images uploadées:', data);
+      return data.images_url || data.url || data.urls;
       
     } catch (error) {
-      console.error('Erreur upload images:', error);
-      // En cas d'erreur, continuer sans images
+      console.error('❌ Erreur upload images:', error);
+      // En cas d'erreur d'upload, continuer sans images plutôt que d'échouer complètement
+      console.warn('⚠️ Poursuite sans images à cause de l\'erreur d\'upload');
       return null;
     }
+  }
+
+  // Méthode pour récupérer les signalements de l'utilisateur
+  async getUserReports() {
+    if (MOCK_MODE) {
+      await this.mockDelay(1000);
+      return [
+        {
+          id: 1,
+          message: 'Terrain de basket endommagé',
+          type: 'Équipement endommagé',
+          etat: 'En cours',
+          created_at: '2024-01-15T10:00:00Z'
+        }
+      ];
+    }
+
+    // Vérifier si l'utilisateur est connecté
+    if (!this.isUserAuthenticated()) {
+      throw new Error('Vous devez être connecté pour voir vos signalements.');
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+
+      const response = await fetch(`${API_BASE_URL}/signalements/user/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          throw new Error('Session expirée. Veuillez vous reconnecter.');
+        }
+        throw new Error('Erreur lors de la récupération des signalements');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('❌ Erreur récupération signalements:', error);
+      throw error;
+    }
+  }
+
+  // Méthode utilitaire pour vérifier l'état de connexion
+  getAuthenticationStatus() {
+    const isAuthenticated = this.isUserAuthenticated();
+    const user = this.getCurrentUser();
+    
+    return {
+      isAuthenticated,
+      user,
+      message: isAuthenticated 
+        ? `Connecté en tant que ${user?.email}` 
+        : 'Non connecté'
+    };
   }
 }
 
