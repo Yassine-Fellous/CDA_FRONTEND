@@ -70,41 +70,21 @@ class ReportService {
 
       // Adapter les données pour correspondre à votre backend
       const backendData = {
-        installation_id: reportData.installation, // Prendre l'ID tel qu'il arrive
+        installation_id: reportData.installation, // Garder l'ID tel quel - le backend gère la correspondance
         message: reportData.message,
         images_url: reportData.images_url,
         type: reportData.type
       };
 
-      console.log('📋 Données adaptées pour backend:', backendData);
+      console.log('📋 Données pour backend (sans conversion):', backendData);
 
-      // ✅ NOUVELLE SOLUTION : Garder l'ID complet (pas de conversion numérique)
+      // Validation simple
       if (!backendData.installation_id && backendData.installation_id !== 0) {
         console.error('❌ SERVICE - installation_id manquant:', backendData);
         throw new Error('ID d\'installation manquant pour l\'envoi à l\'API');
       }
 
-      // Garder l'ID tel quel - PAS de conversion en entier
-      let finalId = backendData.installation_id;
-
-      // S'assurer que l'ID a le bon format (avec préfixe "I" si nécessaire)
-      if (typeof finalId === 'number') {
-        // Si c'est un nombre, ajouter le préfixe "I"
-        finalId = `I${finalId}`;
-        console.log('🔄 ID converti de nombre vers string avec préfixe:', finalId);
-      } else if (typeof finalId === 'string') {
-        // Si c'est une string sans préfixe "I", l'ajouter
-        if (!finalId.startsWith('I') && /^\d+$/.test(finalId)) {
-          finalId = `I${finalId}`;
-          console.log('🔄 Préfixe "I" ajouté:', finalId);
-        }
-        // Sinon, garder tel quel (probablement déjà au bon format)
-      }
-
-      // Utiliser l'ID complet avec préfixe
-      backendData.installation_id = finalId;
-
-      console.log('✅ SERVICE - installation_id final (complet):', backendData.installation_id, 'Type:', typeof backendData.installation_id);
+      console.log('✅ SERVICE - Envoi avec installation_id:', backendData.installation_id, 'Type:', typeof backendData.installation_id);
 
       const response = await fetch(`${API_BASE_URL}/signalements/create/`, {
         method: 'POST',
