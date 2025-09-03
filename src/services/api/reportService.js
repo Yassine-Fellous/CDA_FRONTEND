@@ -27,19 +27,6 @@ class ReportService {
     }
   }
 
-  // Ajouter cette fonction de mapping
-  mapExternalIdToInternalId(externalId) {
-    // Table de correspondance (vous pourriez la charger depuis une API)
-    const idMapping = {
-      'I130010048': 1,
-      'I130010049': 2,
-      'I130010050': 3,
-      // ... etc
-    };
-    
-    return idMapping[externalId] || null;
-  }
-
   async submitReport(reportData) {
     if (MOCK_MODE) {
       console.log('🧪 MODE TEST - Submit report avec:', reportData);
@@ -82,50 +69,42 @@ class ReportService {
       console.log('👤 Utilisateur:', user?.email);
 
       // Adapter les données pour correspondre à votre backend
-      const externalId = reportData.installation;
-      const internalId = this.mapExternalIdToInternalId(externalId);
-      
-      if (!internalId) {
-        throw new Error(`Installation non trouvée dans la correspondance: ${externalId}`);
-      }
-      
       const backendData = {
-        installation_id: internalId, // Utiliser l'ID interne (1, 2, 3, etc.)
+        installation_id: reportData.installation, // Prendre l'ID tel qu'il arrive
         message: reportData.message,
         images_url: reportData.images_url,
         type: reportData.type
       };
 
-      console.log('📋 Mapping:', externalId, '->', internalId);
       console.log('📋 Données adaptées pour backend:', backendData);
 
-      // ✅ SOLUTION SIMPLE : Convertir en entier automatiquement
+      // ✅ NOUVELLE SOLUTION : Garder l'ID complet (pas de conversion numérique)
       if (!backendData.installation_id && backendData.installation_id !== 0) {
         console.error('❌ SERVICE - installation_id manquant:', backendData);
         throw new Error('ID d\'installation manquant pour l\'envoi à l\'API');
       }
 
-      // Convertir l'ID en entier (que ce soit "123" ou "I123" ou 123)
-      let numericId = backendData.installation_id;
+      // Garder l'ID tel quel - PAS de conversion en entier
+      let finalId = backendData.installation_id;
 
-      if (typeof numericId === 'string') {
-        // Si ça commence par "I", enlever le préfixe
-        if (numericId.startsWith('I')) {
-          numericId = numericId.substring(1);
+      // S'assurer que l'ID a le bon format (avec préfixe "I" si nécessaire)
+      if (typeof finalId === 'number') {
+        // Si c'est un nombre, ajouter le préfixe "I"
+        finalId = `I${finalId}`;
+        console.log('🔄 ID converti de nombre vers string avec préfixe:', finalId);
+      } else if (typeof finalId === 'string') {
+        // Si c'est une string sans préfixe "I", l'ajouter
+        if (!finalId.startsWith('I') && /^\d+$/.test(finalId)) {
+          finalId = `I${finalId}`;
+          console.log('🔄 Préfixe "I" ajouté:', finalId);
         }
-        // Convertir en entier
-        numericId = parseInt(numericId);
+        // Sinon, garder tel quel (probablement déjà au bon format)
       }
 
-      // Vérifier que la conversion a fonctionné
-      if (isNaN(numericId) || numericId <= 0) {
-        throw new Error('ID d\'installation invalide');
-      }
+      // Utiliser l'ID complet avec préfixe
+      backendData.installation_id = finalId;
 
-      // Utiliser l'ID converti
-      backendData.installation_id = numericId;
-
-      console.log('✅ SERVICE - installation_id converti:', backendData.installation_id, 'Type:', typeof backendData.installation_id);
+      console.log('✅ SERVICE - installation_id final (complet):', backendData.installation_id, 'Type:', typeof backendData.installation_id);
 
       const response = await fetch(`${API_BASE_URL}/signalements/create/`, {
         method: 'POST',
