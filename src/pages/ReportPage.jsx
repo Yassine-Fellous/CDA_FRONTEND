@@ -323,20 +323,7 @@ const ReportPage = () => {
         }
     };
 
-    // Ajouter un useEffect pour mettre à jour si les paramètres changent
-    useEffect(() => {
-        // Mettre à jour formData si equipmentId change
-        if (equipmentId && equipmentId !== formData.installationId) {
-            console.log('🔄 Mise à jour ID installation:', equipmentId);
-            setFormData(prev => ({
-                ...prev,
-                installationId: equipmentId,
-                installationName: equipmentName || prev.installationName
-            }));
-        }
-    }, [equipmentId, equipmentName, formData.installationId]);
-
-    // Ajouter du debug au début du composant ReportPage (ligne ~25)
+    // Debug initial (garder)
     useEffect(() => {
         console.log('🔍 DEBUG - Paramètres URL:', {
             equipmentId,
@@ -345,15 +332,52 @@ const ReportPage = () => {
             lng,
             address
         });
-        console.log('🔍 DEBUG - FormData initial:', formData);
-    }, [equipmentId, equipmentName, lat, lng, address, formData]);
+    }, [equipmentId, equipmentName, lat, lng, address]);
 
-    // Rediriger si aucun équipement n'est sélectionné
+    // Debug formData (simplifier)
+    useEffect(() => {
+        console.log('🔍 DEBUG - FormData actuel:', formData);
+    }, [formData]);
+
+    // Initialisation depuis URL (corriger)
+    useEffect(() => {
+        if (equipmentId && !formData.installationId) {
+            console.log('🔄 Initialisation depuis URL:', equipmentId);
+            setFormData(prev => ({
+                ...prev,
+                installationId: equipmentId,
+                installationName: equipmentName || ''
+            }));
+        }
+    }, [equipmentId, equipmentName]); // ✅ Sans formData dans les dépendances
+
+    // Restauration sessionStorage (garder)
+    useEffect(() => {
+        const pendingReport = sessionStorage.getItem('pendingReport');
+        if (pendingReport) {
+            try {
+                const { formData: savedFormData } = JSON.parse(pendingReport);
+                setFormData(prev => ({ ...prev, ...savedFormData }));
+                sessionStorage.removeItem('pendingReport');
+            } catch (error) {
+                console.error('Error restoring pending report:', error);
+                sessionStorage.removeItem('pendingReport');
+            }
+        }
+    }, []);
+
+    // Auto-submit après connexion (garder)
+    useEffect(() => {
+        if (isAuthenticated && formCompleted && showAuthPrompt) {
+            setShowAuthPrompt(false);
+            submitFormData();
+        }
+    }, [isAuthenticated, formCompleted, showAuthPrompt]);
+
+    // Redirection si pas d'ID (garder)
     useEffect(() => {
         if (!equipmentId && !formData.installationId) {
             console.error('❌ Aucun ID d\'équipement fourni');
-            
-            // Rediriger vers la carte avec un message d'erreur
             navigate('/map', {
                 state: {
                     message: 'Veuillez sélectionner un équipement depuis la carte pour faire un signalement.',
