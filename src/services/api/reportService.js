@@ -47,17 +47,7 @@ class ReportService {
       // Simuler succès
       const mockResponse = {
         id: Math.floor(Math.random() * 1000) + 1,
-        message: reportData.message,
-        type: reportData.type,
-        etat: 'Nouveau',
-        images_url: reportData.images_url,
-        installation: reportData.installation,
-        utilisateur: {
-          id: 1,
-          email: 'test@example.com'
-        },
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        message: "Signalement créé"
       };
       
       console.log('✅ Signalement créé avec succès:', mockResponse);
@@ -74,17 +64,26 @@ class ReportService {
       const token = localStorage.getItem('authToken');
       const user = this.getCurrentUser();
 
-      console.log('📤 Envoi vers API:', `${API_BASE_URL}/signalements/`);
+      console.log('📤 Envoi vers API:', `${API_BASE_URL}/signalements/create/`);
       console.log('📋 Données:', reportData);
       console.log('👤 Utilisateur:', user?.email);
 
-      const response = await fetch(`${API_BASE_URL}/signalements/`, {
+      // Adapter les données pour correspondre à votre backend
+      const backendData = {
+        installation_id: reportData.installation, // Votre backend attend installation_id
+        message: reportData.message,
+        images_url: reportData.images_url,
+        type: reportData.type
+        // etat n'est pas géré côté backend selon votre code
+      };
+
+      const response = await fetch(`${API_BASE_URL}/signalements/create/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(reportData)
+        body: JSON.stringify(backendData)
       });
 
       console.log('📥 Réponse status:', response.status);
@@ -98,8 +97,20 @@ class ReportService {
           throw new Error('Session expirée. Veuillez vous reconnecter.');
         }
 
-        if (response.status === 403) {
-          throw new Error('Accès refusé. Permissions insuffisantes.');
+        if (response.status === 405) {
+          throw new Error('Méthode non autorisée');
+        }
+
+        if (response.status === 400) {
+          throw new Error('Données manquantes: installation_id et message requis');
+        }
+
+        if (response.status === 404) {
+          throw new Error('Installation introuvable');
+        }
+
+        if (response.status === 500) {
+          throw new Error('Erreur serveur interne');
         }
 
         // Tenter de parser la réponse d'erreur
@@ -110,18 +121,7 @@ class ReportService {
             const errorData = await response.json();
             console.log('❌ Erreur API:', errorData);
             
-            // Gestion des erreurs de validation spécifiques
-            if (errorData.installation) {
-              throw new Error('Installation non trouvée ou invalide.');
-            }
-            if (errorData.message) {
-              throw new Error(`Message invalide: ${errorData.message[0] || errorData.message}`);
-            }
-            if (errorData.type) {
-              throw new Error(`Type de problème invalide: ${errorData.type[0] || errorData.type}`);
-            }
-            
-            throw new Error(errorData.detail || errorData.error || errorData.message || 'Erreur lors de l\'envoi du signalement');
+            throw new Error(errorData.error || 'Erreur lors de l\'envoi du signalement');
           } catch (jsonError) {
             if (jsonError.message.includes('JSON')) {
               throw new Error(`Erreur serveur ${response.status}: ${response.statusText}`);
@@ -168,6 +168,8 @@ class ReportService {
     }
   }
 
+  // Pour l'instant, pas d'endpoint d'upload d'images dans votre backend
+  // On simule ou on retourne null
   async uploadImages(images) {
     if (MOCK_MODE) {
       console.log('🧪 MODE TEST - Upload images:', images.length, 'images');
@@ -180,7 +182,7 @@ class ReportService {
       );
       
       console.log('✅ Images uploadées:', mockUrls);
-      return mockUrls;
+      return mockUrls.join(','); // Votre backend semble attendre une string
     }
 
     if (images.length === 0) return null;
@@ -190,6 +192,18 @@ class ReportService {
       throw new Error('Vous devez être connecté pour uploader des images.');
     }
 
+    // Pour l'instant, votre backend n'a pas d'endpoint d'upload d'images
+    // Vous pouvez soit :
+    // 1. Retourner null (pas d'images)
+    // 2. Convertir en base64 et inclure dans le message
+    // 3. Ajouter un endpoint d'upload plus tard
+
+    console.warn('⚠️ Endpoint d\'upload d\'images pas encore implémenté dans le backend');
+    console.warn('⚠️ Poursuite sans images');
+    return null;
+
+    // Si vous voulez implémenter l'upload plus tard, gardez ce code :
+    /*
     try {
       const token = localStorage.getItem('authToken');
 
@@ -199,13 +213,12 @@ class ReportService {
         formData.append(`image_${index}`, image.file);
       });
 
-      console.log('📤 Upload images vers:', `${API_BASE_URL}/upload-images/`);
+      console.log('📤 Upload images vers:', `${API_BASE_URL}/signalements/upload-images/`);
 
-      const response = await fetch(`${API_BASE_URL}/upload-images/`, {
+      const response = await fetch(`${API_BASE_URL}/signalements/upload-images/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
-          // Ne pas définir Content-Type pour FormData (le navigateur le fait automatiquement)
         },
         body: formData
       });
@@ -230,9 +243,10 @@ class ReportService {
       console.warn('⚠️ Poursuite sans images à cause de l\'erreur d\'upload');
       return null;
     }
+    */
   }
 
-  // Méthode pour récupérer les signalements de l'utilisateur
+  // Pas d'endpoint pour récupérer les signalements utilisateur dans votre backend actuel
   async getUserReports() {
     if (MOCK_MODE) {
       await this.mockDelay(1000);
@@ -241,7 +255,6 @@ class ReportService {
           id: 1,
           message: 'Terrain de basket endommagé',
           type: 'Équipement endommagé',
-          etat: 'En cours',
           created_at: '2024-01-15T10:00:00Z'
         }
       ];
@@ -252,6 +265,12 @@ class ReportService {
       throw new Error('Vous devez être connecté pour voir vos signalements.');
     }
 
+    // Pour l'instant, pas d'endpoint dans votre backend
+    console.warn('⚠️ Endpoint getUserReports pas encore implémenté dans le backend');
+    return [];
+
+    // Si vous voulez implémenter plus tard :
+    /*
     try {
       const token = localStorage.getItem('authToken');
 
@@ -276,6 +295,7 @@ class ReportService {
       console.error('❌ Erreur récupération signalements:', error);
       throw error;
     }
+    */
   }
 
   // Méthode utilitaire pour vérifier l'état de connexion
