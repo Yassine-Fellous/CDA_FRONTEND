@@ -222,7 +222,8 @@ const ReportPage = () => {
             console.log('🔍 DEBUG - IDs disponibles:', {
                 'formData.installationId': formData.installationId,
                 'equipmentId from URL': equipmentId,
-                'installationId final': installationId
+                'installationId final': installationId,
+                'typeof installationId': typeof installationId
             });
 
             if (!installationId) {
@@ -241,15 +242,42 @@ const ReportPage = () => {
                 console.log('✅ Images uploadées:', imagesUrl);
             }
 
+            // ✅ AMÉLIORER la préparation des données
+            let finalInstallationId = installationId;
+            
+            // Si c'est une string qui commence par une lettre (comme "I130010048"), 
+            // essayer de l'utiliser tel quel ou extraire la partie numérique
+            if (typeof installationId === 'string') {
+                // Si ça commence par "I", extraire la partie numérique
+                if (installationId.startsWith('I')) {
+                    const numericPart = installationId.substring(1);
+                    const parsed = parseInt(numericPart);
+                    if (!isNaN(parsed)) {
+                        finalInstallationId = parsed;
+                        console.log('🔄 ID converti de', installationId, 'vers', finalInstallationId);
+                    } else {
+                        // Garder l'ID original si on ne peut pas l'extraire
+                        finalInstallationId = installationId;
+                    }
+                } else {
+                    // Essayer de parser directement
+                    const parsed = parseInt(installationId);
+                    if (!isNaN(parsed)) {
+                        finalInstallationId = parsed;
+                    }
+                }
+            }
+
             // Préparer les données exactement comme attendu par le modèle Django
             const reportData = {
-                installation: parseInt(installationId), // Utiliser l'ID calculé
+                installation: finalInstallationId, // Utiliser l'ID final traité
                 message: formData.message.trim(),
                 images_url: imagesUrl,
                 type: formData.type
             };
 
             console.log('📤 DEBUG - Données finales envoyées:', reportData);
+            console.log('📤 DEBUG - Type de installation:', typeof reportData.installation);
 
             // Appel au service
             const response = await reportService.submitReport(reportData);

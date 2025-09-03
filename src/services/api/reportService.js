@@ -79,12 +79,24 @@ class ReportService {
       console.log('📋 Données adaptées pour backend:', backendData);
 
       // Validation finale côté service
-      if (!backendData.installation_id) {
+      if (!backendData.installation_id && backendData.installation_id !== 0) {
+        console.error('❌ SERVICE - installation_id manquant:', {
+            'reportData.installation': reportData.installation,
+            'backendData.installation_id': backendData.installation_id,
+            'reportData complet': reportData,
+            'backendData complet': backendData
+        });
         throw new Error('ID d\'installation manquant pour l\'envoi à l\'API');
       }
 
-      if (!backendData.message || backendData.message.trim().length === 0) {
-        throw new Error('Message requis pour l\'envoi à l\'API');
+      // Si l'ID est une string, essayer de le convertir
+      if (typeof backendData.installation_id === 'string') {
+        const parsedId = parseInt(backendData.installation_id);
+        if (isNaN(parsedId)) {
+            throw new Error('ID d\'installation invalide (non numérique)');
+        }
+        backendData.installation_id = parsedId;
+        console.log('✅ SERVICE - ID converti en nombre:', backendData.installation_id);
       }
 
       const response = await fetch(`${API_BASE_URL}/signalements/create/`, {
