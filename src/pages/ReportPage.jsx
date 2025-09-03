@@ -27,6 +27,12 @@ const ReportPage = () => {
     });
     console.log('🔍 DEBUG - Tous les paramètres URL:', Object.fromEntries(searchParams));
 
+    // ✅ ÉTATS MANQUANTS - Ajouter ces déclarations
+    const [errors, setErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formCompleted, setFormCompleted] = useState(false);
+    const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+
     const [formData, setFormData] = useState({
         message: '',
         type: '',
