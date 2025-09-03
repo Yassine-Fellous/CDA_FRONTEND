@@ -70,7 +70,7 @@ class ReportService {
 
       // Adapter les données pour correspondre à votre backend
       const backendData = {
-        installation_id: reportData.installation, // Votre backend attend installation_id
+        installation_id: reportData.installation, // ✅ Correct
         message: reportData.message,
         images_url: reportData.images_url,
         type: reportData.type

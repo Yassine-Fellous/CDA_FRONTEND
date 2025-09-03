@@ -37,7 +37,7 @@ const ReportPage = () => {
         message: '',
         type: '',
         images: [],
-        // Initialiser avec l'equipmentId des paramètres URL
+        // S'assurer que l'ID est bien initialisé
         installationId: equipmentId || null,
         installationName: equipmentName || ''
     });
@@ -178,20 +178,26 @@ const ReportPage = () => {
             newErrors.message = 'Description trop courte (minimum 10 caractères)';
         }
 
-        // IMPORTANT : Vérifier l'installation_id
-        if (!formData.installationId) {
+        // CORRECTION : Vérifier à la fois formData.installationId ET equipmentId
+        const installationId = formData.installationId || equipmentId;
+        
+        if (!installationId) {
             newErrors.submit = 'ID d\'installation manquant. Veuillez sélectionner un équipement depuis la carte.';
             console.error('❌ Installation ID manquant:', {
+                'formData.installationId': formData.installationId,
+                'equipmentId': equipmentId,
+                'installationId calculé': installationId,
                 formData,
-                equipmentId,
                 equipmentName
             });
         }
 
         console.log('🔍 DEBUG - Validation:', {
             errors: newErrors,
-            formData,
-            equipmentId
+            'formData.installationId': formData.installationId,
+            'equipmentId from URL': equipmentId,
+            'installationId final': installationId,
+            formData
         });
 
         setErrors(newErrors);
@@ -206,6 +212,23 @@ const ReportPage = () => {
         try {
             console.log('🚀 Début de soumission du formulaire...');
 
+            // Assurer qu'on a un ID d'installation
+            const installationId = formData.installationId || equipmentId;
+            
+            console.log('🔍 DEBUG - IDs disponibles:', {
+                'formData.installationId': formData.installationId,
+                'equipmentId from URL': equipmentId,
+                'installationId final': installationId
+            });
+
+            if (!installationId) {
+                setErrors(prev => ({
+                    ...prev,
+                    submit: 'Erreur: ID d\'installation manquant. Veuillez recommencer depuis la carte.'
+                }));
+                return;
+            }
+
             // Upload des images si présentes
             let imagesUrl = null;
             if (formData.images.length > 0) {
@@ -216,20 +239,11 @@ const ReportPage = () => {
 
             // Préparer les données exactement comme attendu par le modèle Django
             const reportData = {
-                installation: parseInt(formData.installationId) || parseInt(equipmentId), // Assurer que l'ID est présent
+                installation: parseInt(installationId), // Utiliser l'ID calculé
                 message: formData.message.trim(),
                 images_url: imagesUrl,
                 type: formData.type
             };
-
-            // Ajouter une validation finale avant l'envoi
-            if (!reportData.installation) {
-                setErrors(prev => ({
-                    ...prev,
-                    submit: 'Erreur: ID d\'installation manquant. Veuillez recommencer depuis la carte.'
-                }));
-                return;
-            }
 
             console.log('📤 DEBUG - Données finales envoyées:', reportData);
 
@@ -311,14 +325,16 @@ const ReportPage = () => {
 
     // Ajouter un useEffect pour mettre à jour si les paramètres changent
     useEffect(() => {
-        if (equipmentId && !formData.installationId) {
+        // Mettre à jour formData si equipmentId change
+        if (equipmentId && equipmentId !== formData.installationId) {
+            console.log('🔄 Mise à jour ID installation:', equipmentId);
             setFormData(prev => ({
                 ...prev,
                 installationId: equipmentId,
-                installationName: equipmentName || ''
+                installationName: equipmentName || prev.installationName
             }));
         }
-    }, [equipmentId, equipmentName]);
+    }, [equipmentId, equipmentName, formData.installationId]);
 
     // Ajouter du debug au début du composant ReportPage (ligne ~25)
     useEffect(() => {
@@ -420,6 +436,7 @@ const ReportPage = () => {
                                     <p>Email utilisateur: {user?.email || 'Non connecté'}</p>
                                     <p>Installation ID (formData): {formData.installationId || 'Aucune'}</p>
                                     <p>Installation ID (URL): {equipmentId || 'Aucune'}</p>
+                                    <p>Installation ID calculé: {formData.installationId || equipmentId || 'Aucune'}</p>
                                     <p>Nom installation: {formData.installationName || 'Aucun'}</p>
                                     <p>Message: {formData.message.length} caractères</p>
                                     <p>Type: {formData.type || 'Non sélectionné'}</p>
