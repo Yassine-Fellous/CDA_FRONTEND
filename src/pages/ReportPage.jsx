@@ -33,13 +33,16 @@ const ReportPage = () => {
     const [formCompleted, setFormCompleted] = useState(false);
     const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
-    const [formData, setFormData] = useState({
-        message: '',
-        type: '',
-        images: [],
-        // S'assurer que l'ID est bien initialisé
-        installationId: equipmentId || null,
-        installationName: equipmentName || ''
+    const [formData, setFormData] = useState(() => {
+        // Fonction d'initialisation qui s'exécute une seule fois
+        console.log('🔄 Initialisation formData avec equipmentId:', equipmentId);
+        return {
+            message: '',
+            type: '',
+            images: [],
+            installationId: equipmentId || null, // Prendre l'ID immédiatement
+            installationName: equipmentName || ''
+        };
     });
 
     // Plus de debug
@@ -178,27 +181,28 @@ const ReportPage = () => {
             newErrors.message = 'Description trop courte (minimum 10 caractères)';
         }
 
-        // CORRECTION : Vérifier à la fois formData.installationId ET equipmentId
+        // Debug avant validation de l'ID
+        console.log('🔍 VALIDATION DEBUG:', {
+            'formData.installationId': formData.installationId,
+            'typeof formData.installationId': typeof formData.installationId,
+            'equipmentId (URL)': equipmentId,
+            'typeof equipmentId': typeof equipmentId,
+            'formData complet': formData
+        });
+
         const installationId = formData.installationId || equipmentId;
         
         if (!installationId) {
             newErrors.submit = 'ID d\'installation manquant. Veuillez sélectionner un équipement depuis la carte.';
-            console.error('❌ Installation ID manquant:', {
+            console.error('❌ Installation ID manquant en validation:', {
                 'formData.installationId': formData.installationId,
                 'equipmentId': equipmentId,
                 'installationId calculé': installationId,
-                formData,
-                equipmentName
+                'formData': formData
             });
+        } else {
+            console.log('✅ Installation ID trouvé:', installationId);
         }
-
-        console.log('🔍 DEBUG - Validation:', {
-            errors: newErrors,
-            'formData.installationId': formData.installationId,
-            'equipmentId from URL': equipmentId,
-            'installationId final': installationId,
-            formData
-        });
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -339,7 +343,8 @@ const ReportPage = () => {
         console.log('🔍 DEBUG - FormData actuel:', formData);
     }, [formData]);
 
-    // Initialisation depuis URL (corriger)
+    // Supprimer ce useEffect qui crée des conflits :
+    /*
     useEffect(() => {
         if (equipmentId && !formData.installationId) {
             console.log('🔄 Initialisation depuis URL:', equipmentId);
@@ -349,7 +354,18 @@ const ReportPage = () => {
                 installationName: equipmentName || ''
             }));
         }
-    }, [equipmentId, equipmentName]); // ✅ Sans formData dans les dépendances
+    }, [equipmentId, equipmentName]);
+    */
+
+    // Garder seulement le debug :
+    useEffect(() => {
+        console.log('🔍 DEBUG - Valeurs actuelles:', {
+            'equipmentId (URL)': equipmentId,
+            'formData.installationId': formData.installationId,
+            'equipmentName': equipmentName,
+            'formData.installationName': formData.installationName
+        });
+    }, [equipmentId, equipmentName, formData.installationId, formData.installationName]);
 
     // Restauration sessionStorage (garder)
     useEffect(() => {
