@@ -65,7 +65,7 @@ class ReportService {
       const user = this.getCurrentUser();
 
       console.log('📤 Envoi vers API:', `${API_BASE_URL}/signalements/create/`);
-      console.log('📋 Données:', reportData);
+      console.log('📋 Données originales:', reportData);
       console.log('👤 Utilisateur:', user?.email);
 
       // Adapter les données pour correspondre à votre backend
@@ -74,8 +74,18 @@ class ReportService {
         message: reportData.message,
         images_url: reportData.images_url,
         type: reportData.type
-        // etat n'est pas géré côté backend selon votre code
       };
+
+      console.log('📋 Données adaptées pour backend:', backendData);
+
+      // Validation finale côté service
+      if (!backendData.installation_id) {
+        throw new Error('ID d\'installation manquant pour l\'envoi à l\'API');
+      }
+
+      if (!backendData.message || backendData.message.trim().length === 0) {
+        throw new Error('Message requis pour l\'envoi à l\'API');
+      }
 
       const response = await fetch(`${API_BASE_URL}/signalements/create/`, {
         method: 'POST',

@@ -20,7 +20,7 @@ const ReportPage = () => {
         message: '',
         type: '',
         images: [],
-        // Données pour l'identification de l'installation
+        // IMPORTANT : Initialiser avec l'equipmentId des paramètres URL
         installationId: equipmentId || null,
         installationName: equipmentName || ''
     });
@@ -154,6 +154,22 @@ const ReportPage = () => {
             newErrors.message = 'Description trop courte (minimum 10 caractères)';
         }
 
+        // IMPORTANT : Vérifier l'installation_id
+        if (!formData.installationId) {
+            newErrors.submit = 'ID d\'installation manquant. Veuillez sélectionner un équipement depuis la carte.';
+            console.error('❌ Installation ID manquant:', {
+                formData,
+                equipmentId,
+                equipmentName
+            });
+        }
+
+        console.log('🔍 DEBUG - Validation:', {
+            errors: newErrors,
+            formData,
+            equipmentId
+        });
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -176,14 +192,22 @@ const ReportPage = () => {
 
             // Préparer les données exactement comme attendu par le modèle Django
             const reportData = {
+                installation: parseInt(formData.installationId) || parseInt(equipmentId), // Assurer que l'ID est présent
                 message: formData.message.trim(),
-                images_url: imagesUrl, // URL des images uploadées ou null
-                type: formData.type,
-                etat: 'Nouveau', // État par défaut
-                installation: formData.installationId // ID de l'installation
+                images_url: imagesUrl,
+                type: formData.type
             };
 
-            console.log('📤 Envoi des données:', reportData);
+            // Ajouter une validation finale avant l'envoi
+            if (!reportData.installation) {
+                setErrors(prev => ({
+                    ...prev,
+                    submit: 'Erreur: ID d\'installation manquant. Veuillez recommencer depuis la carte.'
+                }));
+                return;
+            }
+
+            console.log('📤 DEBUG - Données finales envoyées:', reportData);
 
             // Appel au service
             const response = await reportService.submitReport(reportData);
@@ -261,6 +285,29 @@ const ReportPage = () => {
         }
     };
 
+    // Ajouter un useEffect pour mettre à jour si les paramètres changent
+    useEffect(() => {
+        if (equipmentId && !formData.installationId) {
+            setFormData(prev => ({
+                ...prev,
+                installationId: equipmentId,
+                installationName: equipmentName || ''
+            }));
+        }
+    }, [equipmentId, equipmentName]);
+
+    // Ajouter du debug au début du composant ReportPage (ligne ~25)
+    useEffect(() => {
+        console.log('🔍 DEBUG - Paramètres URL:', {
+            equipmentId,
+            equipmentName,
+            lat,
+            lng,
+            address
+        });
+        console.log('🔍 DEBUG - FormData initial:', formData);
+    }, [equipmentId, equipmentName, lat, lng, address, formData]);
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
@@ -331,8 +378,12 @@ const ReportPage = () => {
                                 <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
                                     <p><strong>🧪 Mode Debug:</strong></p>
                                     <p>Authentifié: {isAuthenticated ? '✅' : '❌'}</p>
-                                    <p>Utilisateur: {user?.username || 'Non connecté'}</p>
-                                    <p>Installation ID: {formData.installationId || 'Aucune'}</p>
+                                    <p>Email utilisateur: {user?.email || 'Non connecté'}</p>
+                                    <p>Installation ID (formData): {formData.installationId || 'Aucune'}</p>
+                                    <p>Installation ID (URL): {equipmentId || 'Aucune'}</p>
+                                    <p>Nom installation: {formData.installationName || 'Aucun'}</p>
+                                    <p>Message: {formData.message.length} caractères</p>
+                                    <p>Type: {formData.type || 'Non sélectionné'}</p>
                                 </div>
                             )}
 
@@ -340,7 +391,7 @@ const ReportPage = () => {
                             {isAuthenticated && user && (
                                 <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                                     <p className="text-sm font-medium text-green-800">
-                                        Connecté en tant que: {user.name || user.username}
+                                        Connecté en tant que: {user?.email}
                                     </p>
                                 </div>
                             )}
