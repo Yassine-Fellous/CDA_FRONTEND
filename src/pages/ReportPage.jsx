@@ -480,6 +480,33 @@ const ReportPage = () => {
                                     <p>Nom installation: {formData.installationName || 'Aucun'}</p>
                                     <p>Message: {formData.message.length} caractères</p>
                                     <p>Type: {formData.type || 'Non sélectionné'}</p>
+                                    
+                                    {/* Bouton de test */}
+                                    <div className="mt-2 space-x-2">
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                console.log('🧪 TEST - État actuel:', formData);
+                                                console.log('🧪 TEST - Validation:', validateForm());
+                                            }}
+                                            className="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs"
+                                        >
+                                            🧪 Test validation
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    installationId: equipmentId || '123',
+                                                    installationName: equipmentName || 'Test Equipment'
+                                                }));
+                                            }}
+                                            className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs"
+                                        >
+                                            🔧 Forcer ID
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
