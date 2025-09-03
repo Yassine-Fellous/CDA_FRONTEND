@@ -326,6 +326,21 @@ const ReportPage = () => {
         console.log('🔍 DEBUG - FormData initial:', formData);
     }, [equipmentId, equipmentName, lat, lng, address, formData]);
 
+    // Rediriger si aucun équipement n'est sélectionné
+    useEffect(() => {
+        if (!equipmentId && !formData.installationId) {
+            console.error('❌ Aucun ID d\'équipement fourni');
+            
+            // Rediriger vers la carte avec un message d'erreur
+            navigate('/map', {
+                state: {
+                    message: 'Veuillez sélectionner un équipement depuis la carte pour faire un signalement.',
+                    type: 'error'
+                }
+            });
+        }
+    }, [equipmentId, formData.installationId, navigate]);
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}

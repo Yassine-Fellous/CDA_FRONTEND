@@ -326,17 +326,3 @@ class ReportService {
 export const reportService = new ReportService();
 export { MOCK_MODE };
 
-// Dans ReportPage.jsx, ajouter une protection
-useEffect(() => {
-    if (!equipmentId && !formData.installationId) {
-        console.error('❌ Aucun ID d\'équipement fourni');
-        
-        // Rediriger vers la carte avec un message d'erreur
-        navigate('/map', {
-            state: {
-                message: 'Veuillez sélectionner un équipement depuis la carte pour faire un signalement.',
-                type: 'error'
-            }
-        });
-    }
-}, [equipmentId, formData.installationId, navigate]);
