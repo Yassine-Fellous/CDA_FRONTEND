@@ -12,7 +12,16 @@ const MapPopup = ({ popupInfo, onClose }) => {
   
   if (!popupInfo) return null;
 
-  // Prepare equipment data for the report page
+  // Fonction pour obtenir l'ID de l'équipement
+  const getEquipmentId = (equipment) => {
+    return equipment.id || 
+           equipment.properties?.id || 
+           equipment.properties?.gid || 
+           equipment.properties?.fid || 
+           equipment.properties?.installation_id;
+  };
+
+  // Préparer les données de l'équipement pour la page de rapport
   const equipmentData = {
     nom: popupInfo.properties.name,
     adresse: popupInfo.properties.address,
@@ -26,9 +35,12 @@ const MapPopup = ({ popupInfo, onClose }) => {
   };
 
   const handleReportClick = () => {
-    navigate('/report', { 
-      state: { equipmentData } 
-    });
+    const reportUrl = `/report?equipmentId=${getEquipmentId(popupInfo)}&equipmentName=${encodeURIComponent(popupInfo.properties.name)}&lat=${popupInfo.geometry?.coordinates[1]}&lng=${popupInfo.geometry?.coordinates[0]}&address=${encodeURIComponent(popupInfo.properties.address || '')}`;
+    
+    console.log('🔗 DEBUG - Lien de signalement:', reportUrl);
+    console.log('🔗 DEBUG - popupInfo:', popupInfo);
+    
+    navigate(reportUrl);
   };
 
   return (

@@ -15,7 +15,17 @@ export const useEquipments = () => {
         return res.json();
       })
       .then(data => {
-        console.log('Equipments:', data); 
+        console.log('🔍 DEBUG - Structure des équipements:', data);
+        if (data.features && data.features.length > 0) {
+            console.log('🔍 DEBUG - Premier équipement:', data.features[0]);
+            console.log('🔍 DEBUG - Properties du premier:', data.features[0].properties);
+            console.log('🔍 DEBUG - ID disponibles:', {
+                id: data.features[0].id,
+                properties_id: data.features[0].properties.id,
+                properties_gid: data.features[0].properties.gid,
+                properties_fid: data.features[0].properties.fid
+            });
+        }
         setEquipments(data);
         setLoading(false);
       })

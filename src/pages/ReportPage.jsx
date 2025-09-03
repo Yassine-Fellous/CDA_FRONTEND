@@ -9,26 +9,44 @@ const ReportPage = () => {
     const [searchParams] = useSearchParams();
     const { user, isAuthenticated } = useAuth();
     
-    // Récupérer les paramètres de l'URL
+    // Récupérer les paramètres de l'URL avec debug
     const equipmentId = searchParams.get('equipmentId');
     const equipmentName = searchParams.get('equipmentName');
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
     const address = searchParams.get('address');
 
+    // 🔍 DEBUG IMMÉDIAT
+    console.log('🔍 DEBUG - URL actuelle:', window.location.href);
+    console.log('🔍 DEBUG - SearchParams:', {
+        equipmentId,
+        equipmentName,
+        lat,
+        lng,
+        address
+    });
+    console.log('🔍 DEBUG - Tous les paramètres URL:', Object.fromEntries(searchParams));
+
     const [formData, setFormData] = useState({
         message: '',
         type: '',
         images: [],
-        // IMPORTANT : Initialiser avec l'equipmentId des paramètres URL
+        // Initialiser avec l'equipmentId des paramètres URL
         installationId: equipmentId || null,
         installationName: equipmentName || ''
     });
 
-    const [errors, setErrors] = useState({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showAuthPrompt, setShowAuthPrompt] = useState(false);
-    const [formCompleted, setFormCompleted] = useState(false);
+    // Plus de debug
+    useEffect(() => {
+        console.log('🔍 DEBUG - formData.installationId:', formData.installationId);
+        console.log('🔍 DEBUG - equipmentId from URL:', equipmentId);
+        
+        if (!equipmentId) {
+            console.error('❌ PROBLÈME: Aucun equipmentId dans l\'URL');
+            console.log('🔍 URL complète:', window.location.href);
+            console.log('🔍 Search string:', window.location.search);
+        }
+    }, [equipmentId, formData.installationId]);
 
     // Si l'utilisateur se connecte et que le formulaire était complété, soumettre automatiquement
     useEffect(() => {
