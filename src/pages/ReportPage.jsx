@@ -222,14 +222,18 @@ const ReportPage = () => {
             
             console.log('✅ Réponse reçue:', response);
 
+            // Nettoyer le sessionStorage
             sessionStorage.removeItem('pendingReport');
 
-            navigate('/map', { 
-                state: { 
-                    message: 'Signalement envoyé avec succès !',
-                    type: 'success',
-                    reportId: response.id
-                }
+            // ✅ REDIRECTION VERS LA PAGE DE SUCCÈS
+            navigate('/report-success', { 
+              replace: true,
+              state: { 
+                id: response.id,
+                equipmentName: formData.installationName,
+                type: formData.type,
+                message: 'Signalement envoyé avec succès !'
+              }
             });
 
         } catch (error) {

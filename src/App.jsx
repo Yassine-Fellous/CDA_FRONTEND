@@ -23,6 +23,7 @@ import {
 import MapView from './components/Map/MapView';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
+import ReportSuccessPage from './pages/ReportSuccessPage';
 
 // Styles
 import './App.css';
@@ -42,6 +43,7 @@ export default function App() {
               <Route path={ROUTES.ABOUT} element={<AboutPage />} />
               <Route path={ROUTES.SPORTS} element={<SportsPage />} />
               <Route path={ROUTES.REPORT} element={<ReportPage />} />
+              <Route path="/report-success" element={<ReportSuccessPage />} />
               
               {/* Authentification */}
               <Route path={ROUTES.AUTH} element={<AuthPage />} />
