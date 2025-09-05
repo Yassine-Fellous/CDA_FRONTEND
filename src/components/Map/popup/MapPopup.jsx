@@ -15,29 +15,17 @@ const MapPopup = ({ popupInfo, onClose }) => {
   // Fonction pour obtenir l'ID de l'équipement
   const getEquipmentId = (equipment) => {
     console.log('🔍 DEBUG getEquipmentId - equipment reçu:', equipment);
-    console.log('🔍 DEBUG getEquipmentId - properties:', equipment.properties);
     
-    // ✅ PRIORISER L'ID AUTO-INCRÉMENTÉ des properties
-    const possibleIds = [
-      equipment.realId, // ✅ Nouveau : ID explicite depuis MapView
-      equipment.properties?.id, 
-      equipment.properties?.gid, 
-      equipment.properties?.fid, 
-      equipment.properties?.installation_id,
-      equipment.properties?.properties_id,
-      equipment.properties?.properties_gid,
-      equipment.properties?.properties_fid,
-      equipment.id // ✅ En dernier : probablement inst_numero
-    ];
+    // ✅ PRIORISER L'ID AUTO-INCRÉMENTÉ (realId) depuis MapView
+    if (equipment.realId !== undefined && equipment.realId !== null) {
+      console.log('✅ ID auto-incrémenté trouvé (realId):', equipment.realId);
+      return equipment.realId;
+    }
     
-    console.log('🔍 DEBUG getEquipmentId - IDs possibles:', possibleIds);
-    
-    // Retourner le premier ID valide trouvé
-    for (const id of possibleIds) {
-      if (id !== undefined && id !== null && id !== '') {
-        console.log('✅ ID trouvé:', id, 'Type:', typeof id);
-        return id;
-      }
+    // ✅ FALLBACK : utiliser l'ID depuis MapView (déjà converti ou inst_numero)
+    if (equipment.id !== undefined && equipment.id !== null) {
+      console.log('✅ ID fallback trouvé:', equipment.id);
+      return equipment.id;
     }
     
     console.error('❌ Aucun ID trouvé dans:', equipment);

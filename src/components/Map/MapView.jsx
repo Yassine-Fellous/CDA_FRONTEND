@@ -13,7 +13,7 @@ import { useSports } from '@/hooks/useSports';
 // Components
 import MapPopup from './popup/MapPopup';
 import { LoadingSpinner } from '../LoadingSpinner';
-import SearchBar from './searchBar/SearchBar'; // Updated SearchBar component
+import SearchBar from './searchBar/SearchBar';
 import { clusterLayer, clusterCountLayer, unclusteredPointLayer, sportIconLayer } from './layers';
 
 // Styles
@@ -24,7 +24,9 @@ export default function MapView() {
   const sportParam = searchParams.get('sport');
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE);
   const [styleLoaded, setStyleLoaded] = useState(false);
-  const { equipments, errorEquipments, loadingEquipments } = useEquipments();
+  
+  // ✅ UTILISER LE HOOK COMPLET pour le mapping
+  const { equipments, errorEquipments, loadingEquipments, getIdFromInstNumero, idMapping } = useEquipments();
   const { sports, errorSports, loadingSports } = useSports();
   const [popupInfoEquipment, setPopupInfoEquipment] = useState(null);
   const [filteredEquipments, setFilteredEquipments] = useState(null);
@@ -95,26 +97,29 @@ export default function MapView() {
       console.log('🔍 DEBUG COMPLET - feature.id:', feature.id);
       console.log('🔍 DEBUG COMPLET - feature.properties:', feature.properties);
       
-      // ✅ TESTER TOUTES LES PROPRIÉTÉS POSSIBLES
-      console.log('🔍 ANALYSE DES IDs DISPONIBLES:');
-      console.log('  - feature.id:', feature.id, '(type:', typeof feature.id, ')');
-      console.log('  - properties.id:', feature.properties?.id, '(type:', typeof feature.properties?.id, ')');
-      console.log('  - properties.gid:', feature.properties?.gid, '(type:', typeof feature.properties?.gid, ')');
-      console.log('  - properties.fid:', feature.properties?.fid, '(type:', typeof feature.properties?.fid, ')');
-      console.log('  - properties.properties_id:', feature.properties?.properties_id, '(type:', typeof feature.properties?.properties_id, ')');
-      console.log('  - properties.properties_gid:', feature.properties?.properties_gid, '(type:', typeof feature.properties?.properties_gid, ')');
-      console.log('  - properties.properties_fid:', feature.properties?.properties_fid, '(type:', typeof feature.properties?.properties_fid, ')');
+      // ✅ RÉCUPÉRER L'INST_NUMERO ET LE CONVERTIR
+      const instNumero = feature.properties?.id; // Dans votre cas, c'est "I130010048"
+      console.log('🔍 inst_numero trouvé:', instNumero);
       
-      // ✅ AFFICHER TOUTES LES CLÉS DES PROPERTIES
-      console.log('🔍 TOUTES LES CLÉS PROPERTIES:', Object.keys(feature.properties || {}));
+      // ✅ CONVERTIR EN ID AUTO-INCRÉMENTÉ
+      let realDatabaseId = null;
+      if (instNumero && idMapping && idMapping.size > 0) {
+        realDatabaseId = getIdFromInstNumero(instNumero);
+        console.log('🔄 Conversion inst_numero → ID BDD:', instNumero, '→', realDatabaseId);
+      } else {
+        console.warn('⚠️ Mapping pas encore chargé ou inst_numero manquant');
+      }
+      
+      console.log('🎯 ID final pour ReportPage:', realDatabaseId);
       console.log('🔍 =================================');
       
-      // Pour l'instant, utiliser feature.id pour éviter l'erreur
       setPopupInfoEquipment({
         longitude: feature.geometry.coordinates[0],
         latitude: feature.geometry.coordinates[1],
         properties: feature.properties,
-        id: feature.id, // Temporaire
+        id: realDatabaseId || instNumero, // ✅ UTILISER L'ID AUTO-INCRÉMENTÉ ou fallback
+        realId: realDatabaseId, // ✅ ID explicite pour MapPopup
+        instNumero: instNumero, // ✅ GARDER l'inst_numero pour référence
         geometry: feature.geometry
       });
     }
