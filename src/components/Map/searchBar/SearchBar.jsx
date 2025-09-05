@@ -67,7 +67,7 @@ const styles = {
     fontSize: '16px',
     color: '#6b7280',
     backgroundColor: 'transparent',
-    width: '100%', // ✅ L'input prend toute la largeur disponible
+    width: '100%', // ✅ L'input prend toute la largeur disponible fix search bar
   },
   suggestionsContainer: {
     position: 'absolute',
