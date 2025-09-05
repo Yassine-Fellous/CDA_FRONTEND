@@ -9,15 +9,14 @@ const ReportPage = () => {
     const [searchParams] = useSearchParams();
     const { user, isAuthenticated } = useAuth();
     
-    // ✅ RÉCUPÉRER DIRECTEMENT L'ID AUTO-INCRÉMENTÉ
-    const equipmentId = searchParams.get('equipmentId'); // Maintenant c'est un ID numérique !
+    // ✅ ID DIRECTEMENT AUTO-INCRÉMENTÉ
+    const equipmentId = searchParams.get('equipmentId');
     const equipmentName = searchParams.get('equipmentName');
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
     const address = searchParams.get('address');
 
-    // ✅ PLUS BESOIN DE MAPPING OU CONVERSION
-    console.log('🔍 DEBUG - equipmentId reçu (déjà l\'ID auto-incrémenté):', equipmentId);
+    console.log('🔍 ID équipement reçu (auto-incrémenté):', equipmentId);
 
     // États
     const [errors, setErrors] = useState({});
@@ -29,7 +28,7 @@ const ReportPage = () => {
         message: '',
         type: '',
         images: [],
-        installationId: equipmentId ? parseInt(equipmentId) : null, // ✅ DIRECTEMENT L'ID NUMÉRIQUE
+        installationId: equipmentId ? parseInt(equipmentId) : null, // ✅ DIRECTEMENT L'ID
         installationName: equipmentName || ''
     });
 

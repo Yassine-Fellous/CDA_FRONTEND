@@ -75,14 +75,14 @@ class ReportService {
         type: reportData.type
       };
 
-      console.log('📋 Données pour backend (ID auto-incrémenté direct):', backendData);
+      console.log('📋 Données envoyées (ID direct):', backendData);
 
       // Validation simple
       if (!backendData.installation_id && backendData.installation_id !== 0) {
-        throw new Error('ID d\'installation manquant pour l\'envoi à l\'API');
+        throw new Error('ID d\'installation manquant');
       }
 
-      // Conversion en nombre si c'est une string
+      // Conversion en nombre si nécessaire
       if (typeof backendData.installation_id === 'string') {
         backendData.installation_id = parseInt(backendData.installation_id);
         
@@ -91,7 +91,7 @@ class ReportService {
         }
       }
 
-      console.log('✅ SERVICE - Envoi avec installation_id:', backendData.installation_id);
+      console.log('✅ Envoi avec installation_id:', backendData.installation_id);
 
       const response = await fetch(`${API_BASE_URL}/signalements/create/`, {
         method: 'POST',

@@ -25,8 +25,8 @@ export default function MapView() {
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE);
   const [styleLoaded, setStyleLoaded] = useState(false);
   
-  // ✅ UTILISER LE HOOK COMPLET pour le mapping
-  const { equipments, errorEquipments, loadingEquipments, getIdFromInstNumero, idMapping } = useEquipments();
+  // ✅ HOOK SIMPLIFIÉ
+  const { equipments, errorEquipments, loadingEquipments } = useEquipments();
   const { sports, errorSports, loadingSports } = useSports();
   const [popupInfoEquipment, setPopupInfoEquipment] = useState(null);
   const [filteredEquipments, setFilteredEquipments] = useState(null);
@@ -92,34 +92,14 @@ export default function MapView() {
   const onClick = (event) => {
     const feature = event.features?.[0];
     if (feature && feature.layer.id === 'unclustered-point') {
-      console.log('🔍 =================================');
-      console.log('🔍 DEBUG COMPLET - Feature:', feature);
-      console.log('🔍 DEBUG COMPLET - feature.id:', feature.id);
-      console.log('🔍 DEBUG COMPLET - feature.properties:', feature.properties);
-      
-      // ✅ RÉCUPÉRER L'INST_NUMERO ET LE CONVERTIR
-      const instNumero = feature.properties?.id; // Dans votre cas, c'est "I130010048"
-      console.log('🔍 inst_numero trouvé:', instNumero);
-      
-      // ✅ CONVERTIR EN ID AUTO-INCRÉMENTÉ
-      let realDatabaseId = null;
-      if (instNumero && idMapping && idMapping.size > 0) {
-        realDatabaseId = getIdFromInstNumero(instNumero);
-        console.log('🔄 Conversion inst_numero → ID BDD:', instNumero, '→', realDatabaseId);
-      } else {
-        console.warn('⚠️ Mapping pas encore chargé ou inst_numero manquant');
-      }
-      
-      console.log('🎯 ID final pour ReportPage:', realDatabaseId);
-      console.log('🔍 =================================');
+      console.log('🔍 Feature cliquée:', feature);
+      console.log('🔍 ID équipement:', feature.id); // Maintenant directement l'ID auto-incrémenté !
       
       setPopupInfoEquipment({
         longitude: feature.geometry.coordinates[0],
         latitude: feature.geometry.coordinates[1],
         properties: feature.properties,
-        id: realDatabaseId || instNumero, // ✅ UTILISER L'ID AUTO-INCRÉMENTÉ ou fallback
-        realId: realDatabaseId, // ✅ ID explicite pour MapPopup
-        instNumero: instNumero, // ✅ GARDER l'inst_numero pour référence
+        id: feature.id, // ✅ DIRECTEMENT L'ID AUTO-INCRÉMENTÉ
         geometry: feature.geometry
       });
     }

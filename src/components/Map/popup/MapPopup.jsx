@@ -14,22 +14,10 @@ const MapPopup = ({ popupInfo, onClose }) => {
 
   // Fonction pour obtenir l'ID de l'équipement
   const getEquipmentId = (equipment) => {
-    console.log('🔍 DEBUG getEquipmentId - equipment reçu:', equipment);
-    
-    // ✅ PRIORISER L'ID AUTO-INCRÉMENTÉ (realId) depuis MapView
-    if (equipment.realId !== undefined && equipment.realId !== null) {
-      console.log('✅ ID auto-incrémenté trouvé (realId):', equipment.realId);
-      return equipment.realId;
-    }
-    
-    // ✅ FALLBACK : utiliser l'ID depuis MapView (déjà converti ou inst_numero)
-    if (equipment.id !== undefined && equipment.id !== null) {
-      console.log('✅ ID fallback trouvé:', equipment.id);
-      return equipment.id;
-    }
-    
-    console.error('❌ Aucun ID trouvé dans:', equipment);
-    return null;
+    // ✅ SIMPLE : L'ID est maintenant directement le bon !
+    const id = equipment.id || equipment.properties?.id;
+    console.log('✅ ID équipement (auto-incrémenté):', id);
+    return id;
   };
 
   // Préparer les données de l'équipement pour la page de rapport
@@ -46,30 +34,21 @@ const MapPopup = ({ popupInfo, onClose }) => {
   };
 
   const handleReportClick = () => {
-    // ✅ UTILISER LA FONCTION getEquipmentId au lieu de popupInfo.id directement
     const equipmentId = getEquipmentId(popupInfo);
     
-    console.log('🔍 DEBUG - popupInfo complet:', popupInfo);
-    console.log('🔍 DEBUG - equipmentId extrait:', equipmentId);
-    console.log('🔍 DEBUG - Type equipmentId:', typeof equipmentId);
-    
     if (!equipmentId) {
-      console.error('❌ Aucun ID trouvé pour cet équipement:', popupInfo);
-      alert('Impossible de créer un signalement : ID d\'équipement manquant');
+      alert('ID d\'équipement manquant');
       return;
     }
 
-    // ✅ VÉRIFIER aussi les coordonnées
-    const lat = popupInfo.latitude || popupInfo.geometry?.coordinates[1];
-    const lng = popupInfo.longitude || popupInfo.geometry?.coordinates[0];
-    const equipmentName = popupInfo.properties?.name || popupInfo.properties?.inst_nom;
+    const lat = popupInfo.latitude;
+    const lng = popupInfo.longitude;
+    const equipmentName = popupInfo.properties?.name;
 
-    console.log('🔍 DEBUG - Coordonnées:', { lat, lng });
-    console.log('🔍 DEBUG - Nom équipement:', equipmentName);
-
-    const reportUrl = `/report?equipmentId=${equipmentId}&equipmentName=${encodeURIComponent(equipmentName || 'Équipement sans nom')}&lat=${lat || 'unknown'}&lng=${lng || 'unknown'}`;
+    // ✅ URL AVEC ID AUTO-INCRÉMENTÉ DIRECTEMENT
+    const reportUrl = `/report?equipmentId=${equipmentId}&equipmentName=${encodeURIComponent(equipmentName || '')}&lat=${lat}&lng=${lng}`;
     
-    console.log('🔗 URL de redirection:', reportUrl);
+    console.log('🔗 URL finale:', reportUrl);
     navigate(reportUrl);
   };
 
