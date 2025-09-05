@@ -17,23 +17,24 @@ const MapPopup = ({ popupInfo, onClose }) => {
     console.log('🔍 DEBUG getEquipmentId - equipment reçu:', equipment);
     console.log('🔍 DEBUG getEquipmentId - properties:', equipment.properties);
     
-    // Essayer différentes propriétés possibles
+    // ✅ PRIORISER L'ID AUTO-INCRÉMENTÉ des properties
     const possibleIds = [
-      equipment.id,
+      equipment.realId, // ✅ Nouveau : ID explicite depuis MapView
       equipment.properties?.id, 
       equipment.properties?.gid, 
       equipment.properties?.fid, 
       equipment.properties?.installation_id,
-      equipment.properties?.properties_id, // Parfois les données sont imbriquées
+      equipment.properties?.properties_id,
       equipment.properties?.properties_gid,
-      equipment.properties?.properties_fid
+      equipment.properties?.properties_fid,
+      equipment.id // ✅ En dernier : probablement inst_numero
     ];
     
     console.log('🔍 DEBUG getEquipmentId - IDs possibles:', possibleIds);
     
     // Retourner le premier ID valide trouvé
     for (const id of possibleIds) {
-      if (id !== undefined && id !== null) {
+      if (id !== undefined && id !== null && id !== '') {
         console.log('✅ ID trouvé:', id, 'Type:', typeof id);
         return id;
       }
