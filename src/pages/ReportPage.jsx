@@ -2,97 +2,48 @@ import React, { useState, useEffect } from 'react';
 import { Camera, AlertTriangle, Send, ArrowLeft, LogIn, UserPlus } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
-import { useEquipments } from '../hooks/useEquipments.js';
 import { reportService } from '../services/api/reportService';
 
 const ReportPage = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const { user, isAuthenticated } = useAuth();
-    const { getIdFromInstNumero, idMapping, loadingEquipments } = useEquipments(); // ✅ AJOUTER loadingEquipments
     
-    // Récupérer les paramètres de l'URL
+    // Récupérer les paramètres de l'URL avec debug
     const equipmentId = searchParams.get('equipmentId');
     const equipmentName = searchParams.get('equipmentName');
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
     const address = searchParams.get('address');
 
-    // ✅ SÉCURISER LA CONVERSION avec vérifications
-    const getRealDatabaseId = () => {
-        console.log('🔍 equipmentId reçu:', equipmentId, 'Type:', typeof equipmentId);
-        
-        // ✅ VÉRIFIER que le mapping est chargé
-        if (!idMapping || !idMapping.size) {
-            console.warn('⚠️ Mapping pas encore chargé, utilisation de l\'ID tel quel');
-            // Retourner l'ID tel quel en attendant le chargement
-            return equipmentId ? parseInt(equipmentId) || equipmentId : null;
-        }
-        
-        console.log('🔍 Mapping disponible:', idMapping.size, 'entrées');
-        
-        if (!equipmentId) return null;
-        
-        // Si c'est un inst_numero (commence par "I"), utiliser le mapping
-        if (typeof equipmentId === 'string' && equipmentId.startsWith('I')) {
-            const realId = getIdFromInstNumero(equipmentId);
-            console.log('🔄 Mapping inst_numero → ID:', equipmentId, '→', realId);
-            return realId;
-        }
-        
-        // Si c'est déjà un ID numérique, l'utiliser tel quel
-        if (typeof equipmentId === 'number' || (typeof equipmentId === 'string' && /^\d+$/.test(equipmentId))) {
-            const id = parseInt(equipmentId);
-            console.log('✅ ID numérique détecté:', id);
-            return id;
-        }
-        
-        console.warn('⚠️ Format d\'ID non reconnu:', equipmentId);
-        return null;
-    };
+    // 🔍 DEBUG IMMÉDIAT
+    console.log('🔍 DEBUG - URL actuelle:', window.location.href);
+    console.log('🔍 DEBUG - SearchParams:', {
+        equipmentId,
+        equipmentName,
+        lat,
+        lng,
+        address
+    });
+    console.log('🔍 DEBUG - Tous les paramètres URL:', Object.fromEntries(searchParams));
 
-    // États
+    // ✅ ÉTATS MANQUANTS - Ajouter ces déclarations
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formCompleted, setFormCompleted] = useState(false);
     const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
-    // ✅ INITIALISER AVEC PROTECTION
     const [formData, setFormData] = useState(() => {
+        // Fonction d'initialisation qui s'exécute une seule fois
+        console.log('🔄 Initialisation formData avec equipmentId:', equipmentId);
         return {
             message: '',
             type: '',
             images: [],
-            installationId: null, // ✅ Initialiser à null
+            installationId: equipmentId || null, // Prendre l'ID immédiatement
             installationName: equipmentName || ''
         };
     });
-
-    // ✅ USEEFFECT pour mettre à jour l'ID quand le mapping est chargé
-    useEffect(() => {
-        if (!loadingEquipments && idMapping && idMapping.size > 0 && equipmentId) {
-            const realId = getRealDatabaseId();
-            if (realId && realId !== formData.installationId) {
-                console.log('🔄 Mise à jour ID après chargement mapping:', realId);
-                setFormData(prev => ({
-                    ...prev,
-                    installationId: realId
-                }));
-            }
-        }
-    }, [loadingEquipments, idMapping, equipmentId]); // Dépendances
-
-    // ✅ AFFICHER UN LOADER si les données ne sont pas prêtes
-    if (loadingEquipments) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-600">Chargement des données...</p>
-                </div>
-            </div>
-        );
-    }
 
     // Plus de debug
     useEffect(() => {
@@ -265,24 +216,17 @@ const ReportPage = () => {
         try {
             console.log('🚀 Début de soumission du formulaire...');
 
-            // ✅ ASSURER qu'on a le VRAI ID de la base de données
-            let realDatabaseId = formData.installationId;
-            
-            // Si pas d'ID dans formData, essayer de le récupérer
-            if (!realDatabaseId && equipmentId) {
-                realDatabaseId = getRealDatabaseId();
-                console.log('🔄 ID récupéré lors de la soumission:', realDatabaseId);
-            }
+            // Assurer qu'on a un ID d'installation
+            const installationId = formData.installationId || equipmentId;
             
             console.log('🔍 DEBUG - IDs disponibles:', {
-                'equipmentId from URL': equipmentId,
-                'realDatabaseId': realDatabaseId,
                 'formData.installationId': formData.installationId,
-                'typeof realDatabaseId': typeof realDatabaseId,
-                'idMapping loaded': !!(idMapping && idMapping.size)
+                'equipmentId from URL': equipmentId,
+                'installationId final': installationId,
+                'typeof installationId': typeof installationId
             });
 
-            if (!realDatabaseId) {
+            if (!installationId) {
                 setErrors(prev => ({
                     ...prev,
                     submit: 'Erreur: ID d\'installation manquant. Veuillez recommencer depuis la carte.'
@@ -298,9 +242,35 @@ const ReportPage = () => {
                 console.log('✅ Images uploadées:', imagesUrl);
             }
 
-            // ✅ PRÉPARER LES DONNÉES AVEC LE VRAI ID BDD
+            // ✅ AMÉLIORER la préparation des données
+            let finalInstallationId = installationId;
+            
+            // Si c'est une string qui commence par une lettre (comme "I130010048"), 
+            // essayer de l'utiliser tel quel ou extraire la partie numérique
+            if (typeof installationId === 'string') {
+                // Si ça commence par "I", extraire la partie numérique
+                if (installationId.startsWith('I')) {
+                    const numericPart = installationId.substring(1);
+                    const parsed = parseInt(numericPart);
+                    if (!isNaN(parsed)) {
+                        finalInstallationId = parsed;
+                        console.log('🔄 ID converti de', installationId, 'vers', finalInstallationId);
+                    } else {
+                        // Garder l'ID original si on ne peut pas l'extraire
+                        finalInstallationId = installationId;
+                    }
+                } else {
+                    // Essayer de parser directement
+                    const parsed = parseInt(installationId);
+                    if (!isNaN(parsed)) {
+                        finalInstallationId = parsed;
+                    }
+                }
+            }
+
+            // Préparer les données exactement comme attendu par le modèle Django
             const reportData = {
-                installation: realDatabaseId, // ✅ UTILISER LE VRAI ID AUTO-INCRÉMENTÉ DE LA BDD
+                installation: finalInstallationId, // Utiliser l'ID final traité
                 message: formData.message.trim(),
                 images_url: imagesUrl,
                 type: formData.type
@@ -334,8 +304,12 @@ const ReportPage = () => {
             
             if (error.message) {
                 errorMessage = error.message;
+            } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                errorMessage = 'Erreur de connexion. Vérifiez votre connexion internet.';
+            } else if (error.name === 'SyntaxError') {
+                errorMessage = 'Erreur de communication avec le serveur.';
             }
-
+            
             setErrors(prev => ({
                 ...prev,
                 submit: errorMessage
