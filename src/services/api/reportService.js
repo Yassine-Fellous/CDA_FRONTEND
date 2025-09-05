@@ -68,48 +68,21 @@ class ReportService {
       console.log('📋 Données originales:', reportData);
       console.log('👤 Utilisateur:', user?.email);
 
-      // Adapter les données pour correspondre à votre backend
-      let finalInstallationId = reportData.installation;
-
-      // ✅ FORCER LE FORMAT STRING AVEC PRÉFIXE "I"
-      if (typeof finalInstallationId === 'number') {
-        // Si c'est un nombre (ex: 130010048), ajouter le préfixe "I"
-        finalInstallationId = `I${finalInstallationId}`;
-      } else if (typeof finalInstallationId === 'string') {
-        // Si c'est une string
-        if (finalInstallationId.startsWith('I')) {
-          // Déjà au bon format (ex: "I130010048")
-          // Ne rien faire
-        } else if (/^\d+$/.test(finalInstallationId)) {
-          // String numérique (ex: "130010048"), ajouter le préfixe "I"
-          finalInstallationId = `I${finalInstallationId}`;
-        }
-        // Sinon, garder tel quel
-      }
-
       const backendData = {
-        installation_id: finalInstallationId, // ✅ TOUJOURS STRING avec préfixe "I"
+        installation_id: reportData.installation, // ✅ Directement l'ID auto-incrémenté
         message: reportData.message,
         images_url: reportData.images_url,
         type: reportData.type
       };
 
-      console.log('📋 Données pour backend (format string avec préfixe):', backendData);
-      console.log('🔍 installation_id final:', backendData.installation_id, 'Type:', typeof backendData.installation_id);
+      console.log('📋 Données pour backend (ID auto-incrémenté):', backendData);
 
       // Validation simple
-      if (!backendData.installation_id) {
-        console.error('❌ SERVICE - installation_id manquant:', backendData);
+      if (!backendData.installation_id && backendData.installation_id !== 0) {
         throw new Error('ID d\'installation manquant pour l\'envoi à l\'API');
       }
 
-      // ✅ Vérifier que c'est bien une string avec préfixe "I"
-      if (typeof backendData.installation_id !== 'string' || !backendData.installation_id.startsWith('I')) {
-        console.error('❌ SERVICE - installation_id mal formaté:', backendData.installation_id);
-        throw new Error('Format d\'ID d\'installation invalide');
-      }
-
-      console.log('✅ SERVICE - Envoi avec installation_id (format final):', backendData.installation_id);
+      console.log('✅ SERVICE - Envoi avec installation_id:', backendData.installation_id);
 
       const response = await fetch(`${API_BASE_URL}/signalements/create/`, {
         method: 'POST',
