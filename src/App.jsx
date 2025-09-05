@@ -23,7 +23,7 @@ import {
 import MapView from './components/Map/MapView';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
-import ReportSuccessPage from './pages/ReportSuccessPage';
+import ReportSuccessPage from './components/pages/ReportSuccessPage';
 
 // Styles
 import './App.css';

@@ -4,12 +4,12 @@ export const ROUTES = {
   MAP: '/map',
   SPORTS: '/sports',
   ABOUT: '/about',
-  REPORT: '/report',
-  DASHBOARD: '/dashboard',
-  AUTH: '/auth',
   LOGIN: '/login',
   REGISTER: '/register',
   VERIFICATION: '/verification',
   FORGOT_PASSWORD: '/forgot-password',
-  RESET_PASSWORD: '/reset-password/:token'
+  RESET_PASSWORD: '/reset-password/:token',
+  REPORT: '/report',
+  REPORT_SUCCESS: '/report-success', // ✅ AJOUTER CETTE LIGNE
+  DASHBOARD: '/dashboard'
 };
