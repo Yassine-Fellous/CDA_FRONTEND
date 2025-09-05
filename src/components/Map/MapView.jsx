@@ -90,17 +90,32 @@ export default function MapView() {
   const onClick = (event) => {
     const feature = event.features?.[0];
     if (feature && feature.layer.id === 'unclustered-point') {
-      console.log('🔍 DEBUG onClick - Feature complète:', feature);
-      console.log('🔍 DEBUG onClick - Feature.id:', feature.id);
-      console.log('🔍 DEBUG onClick - Feature.properties:', feature.properties);
-      console.log('🔍 DEBUG onClick - Coordonnées:', feature.geometry.coordinates);
+      console.log('🔍 =================================');
+      console.log('🔍 DEBUG COMPLET - Feature:', feature);
+      console.log('🔍 DEBUG COMPLET - feature.id:', feature.id);
+      console.log('🔍 DEBUG COMPLET - feature.properties:', feature.properties);
       
+      // ✅ TESTER TOUTES LES PROPRIÉTÉS POSSIBLES
+      console.log('🔍 ANALYSE DES IDs DISPONIBLES:');
+      console.log('  - feature.id:', feature.id, '(type:', typeof feature.id, ')');
+      console.log('  - properties.id:', feature.properties?.id, '(type:', typeof feature.properties?.id, ')');
+      console.log('  - properties.gid:', feature.properties?.gid, '(type:', typeof feature.properties?.gid, ')');
+      console.log('  - properties.fid:', feature.properties?.fid, '(type:', typeof feature.properties?.fid, ')');
+      console.log('  - properties.properties_id:', feature.properties?.properties_id, '(type:', typeof feature.properties?.properties_id, ')');
+      console.log('  - properties.properties_gid:', feature.properties?.properties_gid, '(type:', typeof feature.properties?.properties_gid, ')');
+      console.log('  - properties.properties_fid:', feature.properties?.properties_fid, '(type:', typeof feature.properties?.properties_fid, ')');
+      
+      // ✅ AFFICHER TOUTES LES CLÉS DES PROPERTIES
+      console.log('🔍 TOUTES LES CLÉS PROPERTIES:', Object.keys(feature.properties || {}));
+      console.log('🔍 =================================');
+      
+      // Pour l'instant, utiliser feature.id pour éviter l'erreur
       setPopupInfoEquipment({
         longitude: feature.geometry.coordinates[0],
         latitude: feature.geometry.coordinates[1],
         properties: feature.properties,
-        id: feature.id, // ✅ AJOUTER l'ID directement
-        geometry: feature.geometry // ✅ AJOUTER la geometry aussi
+        id: feature.id, // Temporaire
+        geometry: feature.geometry
       });
     }
   };
