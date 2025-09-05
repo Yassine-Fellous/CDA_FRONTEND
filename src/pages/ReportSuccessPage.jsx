@@ -1,36 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, MapPin } from 'lucide-react';
 
 const ReportSuccessPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [countdown, setCountdown] = useState(3);
   
   // Récupérer les données du signalement depuis l'état
   const reportData = location.state;
-
-  useEffect(() => {
-    // Compteur dégressif
-    const countdownTimer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(countdownTimer);
-          navigate('/map', { 
-            replace: true,
-            state: {
-              message: 'Signalement envoyé avec succès !',
-              type: 'success'
-            }
-          });
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(countdownTimer);
-  }, [navigate]);
 
   // Redirection immédiate si pas de données
   useEffect(() => {
@@ -93,7 +70,7 @@ const ReportSuccessPage = () => {
           </div>
         )}
 
-        {/* Actions */}
+        {/* Action Button */}
         <div className="space-y-4">
           <button
             onClick={handleReturnToMap}
@@ -102,12 +79,6 @@ const ReportSuccessPage = () => {
             <MapPin className="w-5 h-5 mr-3" />
             Retour à la carte
           </button>
-          
-          <div className="text-center">
-            <p className="text-sm text-gray-500">
-              Redirection automatique dans <span className="font-medium">{countdown} seconde{countdown > 1 ? 's' : ''}</span>
-            </p>
-          </div>
         </div>
       </div>
     </div>

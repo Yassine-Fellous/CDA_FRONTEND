@@ -58,7 +58,7 @@ const styles = {
     padding: '8px 16px',
     width: '60%',
     maxWidth: '400px',
-    zIndex: 49, // Ensure it stays above the map
+    zIndex: 49,
   },
   searchInput: {
     flex: 1,
@@ -67,11 +67,11 @@ const styles = {
     fontSize: '16px',
     color: '#6b7280',
     backgroundColor: 'transparent',
-    marginRight: '8px',
+    width: '100%', // ✅ L'input prend toute la largeur disponible
   },
   suggestionsContainer: {
     position: 'absolute',
-    top: '100%', // Position below the search bar
+    top: '100%',
     left: 0,
     right: 0,
     backgroundColor: '#ffffff',
@@ -79,7 +79,7 @@ const styles = {
     border: '1px solid #e5e7eb',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     marginTop: '8px',
-    zIndex: 49, // Ensure it stays above the search bar
+    zIndex: 49,
     maxHeight: '200px',
     overflowY: 'auto',
   },
