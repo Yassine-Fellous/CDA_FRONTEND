@@ -2,30 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { Camera, AlertTriangle, Send, ArrowLeft, LogIn, UserPlus } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
-import { useEquipments } from '../hooks/useEquipments.js'; // ✅ UTILISER LE HOOK
+import { useEquipments } from '../hooks/useEquipments.js';
 import { reportService } from '../services/api/reportService';
 
 const ReportPage = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const { user, isAuthenticated } = useAuth();
-    const { getIdFromInstNumero, idMapping } = useEquipments(); // ✅ RÉCUPÉRER LA FONCTION DE MAPPING
+    const { getIdFromInstNumero, idMapping, loadingEquipments } = useEquipments(); // ✅ AJOUTER loadingEquipments
     
     // Récupérer les paramètres de l'URL
-    const equipmentId = searchParams.get('equipmentId'); // Probablement inst_numero
+    const equipmentId = searchParams.get('equipmentId');
     const equipmentName = searchParams.get('equipmentName');
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
     const address = searchParams.get('address');
 
-    // ✅ CONVERTIR inst_numero vers le vrai ID auto-incrémenté
+    // ✅ SÉCURISER LA CONVERSION avec vérifications
     const getRealDatabaseId = () => {
         console.log('🔍 equipmentId reçu:', equipmentId, 'Type:', typeof equipmentId);
+        
+        // ✅ VÉRIFIER que le mapping est chargé
+        if (!idMapping || !idMapping.size) {
+            console.warn('⚠️ Mapping pas encore chargé, utilisation de l\'ID tel quel');
+            // Retourner l'ID tel quel en attendant le chargement
+            return equipmentId ? parseInt(equipmentId) || equipmentId : null;
+        }
+        
         console.log('🔍 Mapping disponible:', idMapping.size, 'entrées');
         
         if (!equipmentId) return null;
         
-        // Si c'est un inst_numero (comme "I130010048"), utiliser le mapping
+        // Si c'est un inst_numero (commence par "I"), utiliser le mapping
         if (typeof equipmentId === 'string' && equipmentId.startsWith('I')) {
             const realId = getIdFromInstNumero(equipmentId);
             console.log('🔄 Mapping inst_numero → ID:', equipmentId, '→', realId);
@@ -49,18 +57,42 @@ const ReportPage = () => {
     const [formCompleted, setFormCompleted] = useState(false);
     const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
+    // ✅ INITIALISER AVEC PROTECTION
     const [formData, setFormData] = useState(() => {
-        const realId = getRealDatabaseId();
-        console.log('🔄 Initialisation avec ID BDD réel:', realId);
-        
         return {
             message: '',
             type: '',
             images: [],
-            installationId: realId, // ✅ UTILISER LE VRAI ID DE LA BDD
+            installationId: null, // ✅ Initialiser à null
             installationName: equipmentName || ''
         };
     });
+
+    // ✅ USEEFFECT pour mettre à jour l'ID quand le mapping est chargé
+    useEffect(() => {
+        if (!loadingEquipments && idMapping && idMapping.size > 0 && equipmentId) {
+            const realId = getRealDatabaseId();
+            if (realId && realId !== formData.installationId) {
+                console.log('🔄 Mise à jour ID après chargement mapping:', realId);
+                setFormData(prev => ({
+                    ...prev,
+                    installationId: realId
+                }));
+            }
+        }
+    }, [loadingEquipments, idMapping, equipmentId]); // Dépendances
+
+    // ✅ AFFICHER UN LOADER si les données ne sont pas prêtes
+    if (loadingEquipments) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600">Chargement des données...</p>
+                </div>
+            </div>
+        );
+    }
 
     // Plus de debug
     useEffect(() => {
@@ -233,14 +265,21 @@ const ReportPage = () => {
         try {
             console.log('🚀 Début de soumission du formulaire...');
 
-            // Assurer qu'on a le VRAI ID de la base de données
-            const realDatabaseId = getRealDatabaseId() || formData.installationId;
+            // ✅ ASSURER qu'on a le VRAI ID de la base de données
+            let realDatabaseId = formData.installationId;
+            
+            // Si pas d'ID dans formData, essayer de le récupérer
+            if (!realDatabaseId && equipmentId) {
+                realDatabaseId = getRealDatabaseId();
+                console.log('🔄 ID récupéré lors de la soumission:', realDatabaseId);
+            }
             
             console.log('🔍 DEBUG - IDs disponibles:', {
                 'equipmentId from URL': equipmentId,
                 'realDatabaseId': realDatabaseId,
                 'formData.installationId': formData.installationId,
-                'typeof realDatabaseId': typeof realDatabaseId
+                'typeof realDatabaseId': typeof realDatabaseId,
+                'idMapping loaded': !!(idMapping && idMapping.size)
             });
 
             if (!realDatabaseId) {
