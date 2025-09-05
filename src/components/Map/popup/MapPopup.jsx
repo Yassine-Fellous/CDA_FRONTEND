@@ -35,11 +35,10 @@ const MapPopup = ({ popupInfo, onClose }) => {
   };
 
   const handleReportClick = () => {
-    const reportUrl = `/report?equipmentId=${getEquipmentId(popupInfo)}&equipmentName=${encodeURIComponent(popupInfo.properties.name)}&lat=${popupInfo.geometry?.coordinates[1]}&lng=${popupInfo.geometry?.coordinates[0]}&address=${encodeURIComponent(popupInfo.properties.address || '')}`;
+    // ✅ UTILISER L'ID AUTO-INCRÉMENTÉ au lieu d'inst_numero
+    const reportUrl = `/report?equipmentId=${popupInfo.id}&equipmentName=${encodeURIComponent(popupInfo.properties.name)}&lat=${popupInfo.geometry?.coordinates[1]}&lng=${popupInfo.geometry?.coordinates[0]}`;
     
-    console.log('🔗 DEBUG - Lien de signalement:', reportUrl);
-    console.log('🔗 DEBUG - popupInfo:', popupInfo);
-    
+    console.log('🔗 Redirection vers signalement avec ID auto-incrémenté:', popupInfo.id);
     navigate(reportUrl);
   };
 

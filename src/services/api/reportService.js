@@ -69,30 +69,29 @@ class ReportService {
       console.log('👤 Utilisateur:', user?.email);
 
       const backendData = {
-        installation_id: reportData.installation, // ✅ Directement le vrai ID de la BDD (déjà récupéré via mapping)
+        installation_id: reportData.installation, // ✅ Directement l'ID auto-incrémenté
         message: reportData.message,
         images_url: reportData.images_url,
         type: reportData.type
       };
 
-      console.log('📋 Données pour backend (ID BDD réel):', backendData);
+      console.log('📋 Données pour backend (ID auto-incrémenté direct):', backendData);
 
       // Validation simple
       if (!backendData.installation_id && backendData.installation_id !== 0) {
         throw new Error('ID d\'installation manquant pour l\'envoi à l\'API');
       }
 
-      // Vérifier que c'est bien un nombre (ID de la BDD)
-      if (typeof backendData.installation_id !== 'number') {
-        console.warn('⚠️ ID pas numérique, tentative de conversion:', backendData.installation_id);
+      // Conversion en nombre si c'est une string
+      if (typeof backendData.installation_id === 'string') {
         backendData.installation_id = parseInt(backendData.installation_id);
         
         if (isNaN(backendData.installation_id)) {
-          throw new Error('ID d\'installation invalide (non numérique)');
+          throw new Error('ID d\'installation invalide');
         }
       }
 
-      console.log('✅ SERVICE - Envoi avec installation_id (BDD réel):', backendData.installation_id);
+      console.log('✅ SERVICE - Envoi avec installation_id:', backendData.installation_id);
 
       const response = await fetch(`${API_BASE_URL}/signalements/create/`, {
         method: 'POST',

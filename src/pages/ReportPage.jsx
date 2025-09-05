@@ -9,53 +9,29 @@ const ReportPage = () => {
     const [searchParams] = useSearchParams();
     const { user, isAuthenticated } = useAuth();
     
-    // Récupérer les paramètres de l'URL avec debug
-    const equipmentId = searchParams.get('equipmentId');
+    // ✅ RÉCUPÉRER DIRECTEMENT L'ID AUTO-INCRÉMENTÉ
+    const equipmentId = searchParams.get('equipmentId'); // Maintenant c'est un ID numérique !
     const equipmentName = searchParams.get('equipmentName');
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
     const address = searchParams.get('address');
 
-    // 🔍 DEBUG IMMÉDIAT
-    console.log('🔍 DEBUG - URL actuelle:', window.location.href);
-    console.log('🔍 DEBUG - SearchParams:', {
-        equipmentId,
-        equipmentName,
-        lat,
-        lng,
-        address
-    });
-    console.log('🔍 DEBUG - Tous les paramètres URL:', Object.fromEntries(searchParams));
+    // ✅ PLUS BESOIN DE MAPPING OU CONVERSION
+    console.log('🔍 DEBUG - equipmentId reçu (déjà l\'ID auto-incrémenté):', equipmentId);
 
-    // ✅ ÉTATS MANQUANTS - Ajouter ces déclarations
+    // États
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formCompleted, setFormCompleted] = useState(false);
     const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
-    const [formData, setFormData] = useState(() => {
-        // Fonction d'initialisation qui s'exécute une seule fois
-        console.log('🔄 Initialisation formData avec equipmentId:', equipmentId);
-        return {
-            message: '',
-            type: '',
-            images: [],
-            installationId: equipmentId || null, // Prendre l'ID immédiatement
-            installationName: equipmentName || ''
-        };
+    const [formData, setFormData] = useState({
+        message: '',
+        type: '',
+        images: [],
+        installationId: equipmentId ? parseInt(equipmentId) : null, // ✅ DIRECTEMENT L'ID NUMÉRIQUE
+        installationName: equipmentName || ''
     });
-
-    // Plus de debug
-    useEffect(() => {
-        console.log('🔍 DEBUG - formData.installationId:', formData.installationId);
-        console.log('🔍 DEBUG - equipmentId from URL:', equipmentId);
-        
-        if (!equipmentId) {
-            console.error('❌ PROBLÈME: Aucun equipmentId dans l\'URL');
-            console.log('🔍 URL complète:', window.location.href);
-            console.log('🔍 Search string:', window.location.search);
-        }
-    }, [equipmentId, formData.installationId]);
 
     // Si l'utilisateur se connecte et que le formulaire était complété, soumettre automatiquement
     useEffect(() => {
@@ -216,20 +192,12 @@ const ReportPage = () => {
         try {
             console.log('🚀 Début de soumission du formulaire...');
 
-            // Assurer qu'on a un ID d'installation
-            const installationId = formData.installationId || equipmentId;
+            const finalInstallationId = formData.installationId;
             
-            console.log('🔍 DEBUG - IDs disponibles:', {
-                'formData.installationId': formData.installationId,
-                'equipmentId from URL': equipmentId,
-                'installationId final': installationId,
-                'typeof installationId': typeof installationId
-            });
-
-            if (!installationId) {
+            if (!finalInstallationId) {
                 setErrors(prev => ({
                     ...prev,
-                    submit: 'Erreur: ID d\'installation manquant. Veuillez recommencer depuis la carte.'
+                    submit: 'Erreur: ID d\'installation manquant.'
                 }));
                 return;
             }
@@ -239,55 +207,24 @@ const ReportPage = () => {
             if (formData.images.length > 0) {
                 console.log('📸 Upload des images...');
                 imagesUrl = await reportService.uploadImages(formData.images);
-                console.log('✅ Images uploadées:', imagesUrl);
             }
 
-            // ✅ AMÉLIORER la préparation des données
-            let finalInstallationId = installationId;
-            
-            // Si c'est une string qui commence par une lettre (comme "I130010048"), 
-            // essayer de l'utiliser tel quel ou extraire la partie numérique
-            if (typeof installationId === 'string') {
-                // Si ça commence par "I", extraire la partie numérique
-                if (installationId.startsWith('I')) {
-                    const numericPart = installationId.substring(1);
-                    const parsed = parseInt(numericPart);
-                    if (!isNaN(parsed)) {
-                        finalInstallationId = parsed;
-                        console.log('🔄 ID converti de', installationId, 'vers', finalInstallationId);
-                    } else {
-                        // Garder l'ID original si on ne peut pas l'extraire
-                        finalInstallationId = installationId;
-                    }
-                } else {
-                    // Essayer de parser directement
-                    const parsed = parseInt(installationId);
-                    if (!isNaN(parsed)) {
-                        finalInstallationId = parsed;
-                    }
-                }
-            }
-
-            // Préparer les données exactement comme attendu par le modèle Django
+            // ✅ DONNÉES DIRECTES - PLUS DE CONVERSION
             const reportData = {
-                installation: finalInstallationId, // Utiliser l'ID final traité
+                installation: finalInstallationId, // Directement l'ID auto-incrémenté !
                 message: formData.message.trim(),
                 images_url: imagesUrl,
                 type: formData.type
             };
 
-            console.log('📤 DEBUG - Données finales envoyées:', reportData);
-            console.log('📤 DEBUG - Type de installation:', typeof reportData.installation);
+            console.log('📤 Données envoyées au backend:', reportData);
 
-            // Appel au service
             const response = await reportService.submitReport(reportData);
             
             console.log('✅ Réponse reçue:', response);
 
-            // Nettoyer le sessionStorage
             sessionStorage.removeItem('pendingReport');
 
-            // Rediriger vers la carte avec message de succès
             navigate('/map', { 
                 state: { 
                     message: 'Signalement envoyé avec succès !',
@@ -299,20 +236,9 @@ const ReportPage = () => {
         } catch (error) {
             console.error('❌ Erreur soumission:', error);
             
-            // Gestion spécifique des erreurs
-            let errorMessage = 'Erreur lors de l\'envoi du signalement';
-            
-            if (error.message) {
-                errorMessage = error.message;
-            } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                errorMessage = 'Erreur de connexion. Vérifiez votre connexion internet.';
-            } else if (error.name === 'SyntaxError') {
-                errorMessage = 'Erreur de communication avec le serveur.';
-            }
-            
             setErrors(prev => ({
                 ...prev,
-                submit: errorMessage
+                submit: error.message || 'Erreur lors de l\'envoi du signalement'
             }));
         } finally {
             setIsSubmitting(false);
