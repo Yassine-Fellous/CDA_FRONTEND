@@ -90,11 +90,17 @@ export default function MapView() {
   const onClick = (event) => {
     const feature = event.features?.[0];
     if (feature && feature.layer.id === 'unclustered-point') {
-      console.log('Feature clicked:', feature);
+      console.log('🔍 DEBUG onClick - Feature complète:', feature);
+      console.log('🔍 DEBUG onClick - Feature.id:', feature.id);
+      console.log('🔍 DEBUG onClick - Feature.properties:', feature.properties);
+      console.log('🔍 DEBUG onClick - Coordonnées:', feature.geometry.coordinates);
+      
       setPopupInfoEquipment({
         longitude: feature.geometry.coordinates[0],
         latitude: feature.geometry.coordinates[1],
-        properties: feature.properties
+        properties: feature.properties,
+        id: feature.id, // ✅ AJOUTER l'ID directement
+        geometry: feature.geometry // ✅ AJOUTER la geometry aussi
       });
     }
   };

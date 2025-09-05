@@ -14,11 +14,33 @@ const MapPopup = ({ popupInfo, onClose }) => {
 
   // Fonction pour obtenir l'ID de l'équipement
   const getEquipmentId = (equipment) => {
-    return equipment.id || 
-           equipment.properties?.id || 
-           equipment.properties?.gid || 
-           equipment.properties?.fid || 
-           equipment.properties?.installation_id;
+    console.log('🔍 DEBUG getEquipmentId - equipment reçu:', equipment);
+    console.log('🔍 DEBUG getEquipmentId - properties:', equipment.properties);
+    
+    // Essayer différentes propriétés possibles
+    const possibleIds = [
+      equipment.id,
+      equipment.properties?.id, 
+      equipment.properties?.gid, 
+      equipment.properties?.fid, 
+      equipment.properties?.installation_id,
+      equipment.properties?.properties_id, // Parfois les données sont imbriquées
+      equipment.properties?.properties_gid,
+      equipment.properties?.properties_fid
+    ];
+    
+    console.log('🔍 DEBUG getEquipmentId - IDs possibles:', possibleIds);
+    
+    // Retourner le premier ID valide trouvé
+    for (const id of possibleIds) {
+      if (id !== undefined && id !== null) {
+        console.log('✅ ID trouvé:', id, 'Type:', typeof id);
+        return id;
+      }
+    }
+    
+    console.error('❌ Aucun ID trouvé dans:', equipment);
+    return null;
   };
 
   // Préparer les données de l'équipement pour la page de rapport
@@ -35,10 +57,30 @@ const MapPopup = ({ popupInfo, onClose }) => {
   };
 
   const handleReportClick = () => {
-    // ✅ UTILISER L'ID AUTO-INCRÉMENTÉ au lieu d'inst_numero
-    const reportUrl = `/report?equipmentId=${popupInfo.id}&equipmentName=${encodeURIComponent(popupInfo.properties.name)}&lat=${popupInfo.geometry?.coordinates[1]}&lng=${popupInfo.geometry?.coordinates[0]}`;
+    // ✅ UTILISER LA FONCTION getEquipmentId au lieu de popupInfo.id directement
+    const equipmentId = getEquipmentId(popupInfo);
     
-    console.log('🔗 Redirection vers signalement avec ID auto-incrémenté:', popupInfo.id);
+    console.log('🔍 DEBUG - popupInfo complet:', popupInfo);
+    console.log('🔍 DEBUG - equipmentId extrait:', equipmentId);
+    console.log('🔍 DEBUG - Type equipmentId:', typeof equipmentId);
+    
+    if (!equipmentId) {
+      console.error('❌ Aucun ID trouvé pour cet équipement:', popupInfo);
+      alert('Impossible de créer un signalement : ID d\'équipement manquant');
+      return;
+    }
+
+    // ✅ VÉRIFIER aussi les coordonnées
+    const lat = popupInfo.latitude || popupInfo.geometry?.coordinates[1];
+    const lng = popupInfo.longitude || popupInfo.geometry?.coordinates[0];
+    const equipmentName = popupInfo.properties?.name || popupInfo.properties?.inst_nom;
+
+    console.log('🔍 DEBUG - Coordonnées:', { lat, lng });
+    console.log('🔍 DEBUG - Nom équipement:', equipmentName);
+
+    const reportUrl = `/report?equipmentId=${equipmentId}&equipmentName=${encodeURIComponent(equipmentName || 'Équipement sans nom')}&lat=${lat || 'unknown'}&lng=${lng || 'unknown'}`;
+    
+    console.log('🔗 URL de redirection:', reportUrl);
     navigate(reportUrl);
   };
 
