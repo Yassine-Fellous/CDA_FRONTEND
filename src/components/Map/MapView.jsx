@@ -250,8 +250,28 @@ export default function MapView() {
     const map = event.target;
     setStyleLoaded(true);
     
-    // ✅ SUPPRIMER COMPLÈTEMENT LA CRÉATION D'IMAGES PERSONNALISÉES
-    console.log('✅ Carte chargée - utilisation des couleurs uniquement');
+    // ✅ CHARGER LES IMAGES DEPUIS PUBLIC/
+    map.loadImage('/map-pinv9.png', (error, image) => {
+      if (error) {
+        console.error('❌ Erreur chargement /map-pinv9.png:', error);
+        return;
+      }
+      if (!map.hasImage('map-pin')) {
+        map.addImage('map-pin', image);
+        console.log('✅ map-pin chargé');
+      }
+    });
+
+    map.loadImage('/map-pin-active.png', (error, image) => {
+      if (error) {
+        console.error('❌ Erreur chargement /map-pin-active.png:', error);
+        return;
+      }
+      if (!map.hasImage('map-pin-active')) {
+        map.addImage('map-pin-active', image);
+        console.log('✅ map-pin-active chargé');
+      }
+    });
   };
 
   // Modifier getUnclusteredPointLayer pour utiliser des points simples :
@@ -260,29 +280,20 @@ export default function MapView() {
     const selectedId = popupInfoEquipment?.properties?.id || popupInfoEquipment?.id;
     
     return {
-      id: 'unclustered-point',
-      type: 'circle', // ✅ UTILISER UN CERCLE AU LIEU D'UNE ICÔNE
-      source: 'equipments',
-      filter: ['!', ['has', 'point_count']],
-      paint: {
-        'circle-color': [
+      ...unclusteredPointLayer,
+      layout: {
+        ...unclusteredPointLayer.layout,
+        'icon-image': [
           'case',
           ['==', ['get', 'id'], selectedId || ''],
-          isDesktop ? '#22c55e' : '#e74c3c', // Vert sur desktop, rouge sur mobile
-          '#3498DB' // Couleur par défaut
+          'map-pin-active', // Pin actif quand sélectionné
+          'map-pin' // Pin orange par défaut
         ],
-        'circle-radius': [
+        'icon-size': [
           'case',
           ['==', ['get', 'id'], selectedId || ''],
-          8, // Plus grand quand sélectionné
-          6  // Taille normale
-        ],
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': [
-          'case',
-          ['==', ['get', 'id'], selectedId || ''],
-          3, // Bordure plus épaisse quand sélectionné
-          2
+          0.4, // Plus grand quand sélectionné
+          0.3  // Taille normale
         ]
       }
     };
