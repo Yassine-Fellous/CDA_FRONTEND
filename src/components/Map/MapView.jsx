@@ -107,40 +107,32 @@ export default function MapView() {
       const longitude = feature.geometry.coordinates[0];
       const latitude = feature.geometry.coordinates[1];
       
-      console.log('🎯 Clic sur équipement:', { equipmentId, longitude, latitude });
-      
-      // ✅ DÉCALAGE ADAPTATIF SELON LA TAILLE D'ÉCRAN
-      const isMobile = window.innerWidth <= 768;
-      const isTablet = window.innerWidth <= 1024;
-      
+      // ✅ OFFSET ADAPTATIF POUR BIEN CENTRER LA POPUP
       let offset;
-      if (isMobile) {
-        offset = 0.0025; // Mobile : petit décalage (popup en bas)
-      } else if (isTablet) {
-        offset = 0.003; // Tablette : décalage moyen
+      if (window.innerWidth <= 768) {
+        offset = 0.004; // Mobile : popup en bas
+      } else if (window.innerWidth <= 1200) {
+        offset = 0.010; // Desktop moyen
       } else {
-        offset = 0.004; // Desktop : décalage plus important (éviter la search bar)
+        offset = 0.012; // Grand écran
       }
       
-      console.log('📱 Device type:', { isMobile, isTablet, offset });
+      console.log('🎯 Centrage sur popup avec offset:', offset);
       
       setViewState(prevState => ({
         ...prevState,
         longitude: longitude,
-        latitude: latitude + offset,
-        transitionDuration: 400
+        latitude: latitude + offset, // ✅ CENTRE DE LA CARTE = POPUP
+        transitionDuration: 500
       }));
       
-      // ✅ POPUP IMMÉDIATE
       setPopupInfoEquipment({
         longitude: longitude,
-        latitude: latitude,
+        latitude: latitude, // ✅ POINT RESTE À SA POSITION ORIGINALE
         properties: feature.properties,
         id: equipmentId,
         geometry: feature.geometry
       });
-      
-      console.log('✅ Centrage terminé sans zoom, offset:', offset);
     }
   };
 
