@@ -107,24 +107,19 @@ export default function MapView() {
       const longitude = feature.geometry.coordinates[0];
       const latitude = feature.geometry.coordinates[1];
       
-      // ✅ CALCUL AUTOMATIQUE SELON LA HAUTEUR D'ÉCRAN
-      const screenHeight = window.innerHeight;
-      const searchBarHeight = 80; // Hauteur de la search bar + marges
-      const popupHeight = window.innerWidth <= 768 ? 300 : 400; // Hauteur approximative popup
+      // ✅ OFFSET TESTÉ POUR POSITIONNER ENTRE SEARCH BAR ET POPUP
+      let offset;
+      if (window.innerWidth <= 768) {
+        offset = 0.003; // Mobile : position optimale testée
+      } else if (window.innerWidth <= 1200) {
+        offset = 0.006; // Tablette/Desktop moyen
+      } else {
+        offset = 0.008; // Grand écran
+      }
       
-      // ✅ CALCULER L'OFFSET POUR QUE LA POPUP SOIT CENTRÉE DANS L'ESPACE LIBRE
-      const availableHeight = screenHeight - searchBarHeight;
-      const offsetPixels = (availableHeight / 2) - (popupHeight / 2) + searchBarHeight;
-      
-      // ✅ CONVERTIR EN DEGRÉS (approximation)
-      const degreesPerPixel = 0.000012; // Approximation pour le niveau de zoom moyen
-      const offset = offsetPixels * degreesPerPixel;
-      
-      console.log('📊 Calcul automatique:', {
-        screenHeight,
-        availableHeight,
-        offsetPixels,
-        offsetDegrees: offset
+      console.log('🎯 Centrage optimisé:', { 
+        screenWidth: window.innerWidth, 
+        offset 
       });
       
       setViewState(prevState => ({
