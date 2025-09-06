@@ -250,172 +250,39 @@ export default function MapView() {
     const map = event.target;
     setStyleLoaded(true);
     
-    // ✅ ÉCOUTEUR POUR TOUTES LES IMAGES MANQUANTES
-    map.on('styleimagemissing', (e) => {
-      const id = e.id;
-      console.log('🔍 Image manquante:', id);
-      
-      // ✅ CRÉER TOUTES LES IMAGES MANQUANTES DYNAMIQUEMENT
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      if (id.includes('rectangle-yellow')) {
-        // Images rectangles jaunes pour les clusters
-        canvas.width = 40;
-        canvas.height = 20;
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillRect(0, 0, 40, 20);
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(0, 0, 40, 20);
-      } else if (id === 'map-pin') {
-        // Pin par défaut
-        canvas.width = 30;
-        canvas.height = 30;
-        ctx.beginPath();
-        ctx.arc(15, 15, 12, 0, 2 * Math.PI);
-        ctx.fillStyle = '#3498DB';
-        ctx.fill();
-        ctx.strokeStyle = '#2980b9';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      } else if (id === 'map-pin-active') {
-        // Pin actif
-        canvas.width = 30;
-        canvas.height = 30;
-        ctx.beginPath();
-        ctx.arc(15, 15, 12, 0, 2 * Math.PI);
-        ctx.fillStyle = '#e74c3c';
-        ctx.fill();
-        ctx.strokeStyle = '#c0392b';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      } else if (id === 'map-pin-green') {
-        // Pin vert pour desktop
-        canvas.width = 30;
-        canvas.height = 30;
-        ctx.beginPath();
-        ctx.arc(15, 15, 12, 0, 2 * Math.PI);
-        ctx.fillStyle = '#22c55e';
-        ctx.fill();
-        ctx.strokeStyle = '#16a34a';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      } else {
-        // Image générique pour tout autre cas
-        canvas.width = 20;
-        canvas.height = 20;
-        ctx.fillStyle = '#9ca3af';
-        ctx.fillRect(0, 0, 20, 20);
-      }
-      
-      try {
-        map.addImage(id, canvas);
-        console.log('✅ Image créée:', id);
-      } catch (error) {
-        console.warn('⚠️ Erreur création image:', id, error);
-      }
-    });
-
-    // ✅ CRÉER LES IMAGES PRINCIPALES UNE SEULE FOIS
-    const createMainImages = () => {
-      try {
-        // Pin par défaut
-        if (!map.hasImage('map-pin')) {
-          const canvas1 = document.createElement('canvas');
-          const ctx1 = canvas1.getContext('2d');
-          canvas1.width = 30;
-          ctx1.height = 30;
-          ctx1.beginPath();
-          ctx1.arc(15, 15, 12, 0, 2 * Math.PI);
-          ctx1.fillStyle = '#3498DB';
-          ctx1.fill();
-          ctx1.strokeStyle = '#2980b9';
-          ctx1.lineWidth = 2;
-          ctx1.stroke();
-          map.addImage('map-pin', canvas1);
-          console.log('✅ map-pin créé');
-        }
-
-        // Pin actif
-        if (!map.hasImage('map-pin-active')) {
-          const canvas2 = document.createElement('canvas');
-          const ctx2 = canvas2.getContext('2d');
-          canvas2.width = 30;
-          ctx2.height = 30;
-          ctx2.beginPath();
-          ctx2.arc(15, 15, 12, 0, 2 * Math.PI);
-          ctx2.fillStyle = '#e74c3c';
-          ctx2.fill();
-          ctx2.strokeStyle = '#c0392b';
-          ctx2.lineWidth = 2;
-          ctx2.stroke();
-          map.addImage('map-pin-active', canvas2);
-          console.log('✅ map-pin-active créé');
-        }
-
-        // Pin vert pour desktop
-        if (!map.hasImage('map-pin-green')) {
-          const canvas3 = document.createElement('canvas');
-          const ctx3 = canvas3.getContext('2d');
-          canvas3.width = 30;
-          ctx3.height = 30;
-          ctx3.beginPath();
-          ctx3.arc(15, 15, 12, 0, 2 * Math.PI);
-          ctx3.fillStyle = '#22c55e';
-          ctx3.fill();
-          ctx3.strokeStyle = '#16a34a';
-          ctx3.lineWidth = 2;
-          ctx3.stroke();
-          map.addImage('map-pin-green', canvas3);
-          console.log('✅ map-pin-green créé');
-        }
-        
-      } catch (error) {
-        console.error('❌ Erreur création images principales:', error);
-      }
-    };
-
-    // Créer les images après un délai pour éviter les conflits
-    setTimeout(createMainImages, 100);
+    // ✅ SUPPRIMER COMPLÈTEMENT LA CRÉATION D'IMAGES PERSONNALISÉES
+    console.log('✅ Carte chargée - utilisation des couleurs uniquement');
   };
 
-  // Update the unclusteredPointLayer to use different icons based on active state
+  // Modifier getUnclusteredPointLayer pour utiliser des points simples :
   const getUnclusteredPointLayer = () => {
     const isDesktop = window.innerWidth >= 1024;
     const selectedId = popupInfoEquipment?.properties?.id || popupInfoEquipment?.id;
     
-    // ✅ RÉDUIRE LES LOGS POUR AMÉLIORER LES PERFORMANCES
-    if (selectedId) {
-      console.log('🔍 Point sélectionné:', selectedId, 'Desktop:', isDesktop);
-    }
-    
     return {
-      ...unclusteredPointLayer,
+      id: 'unclustered-point',
+      type: 'circle', // ✅ UTILISER UN CERCLE AU LIEU D'UNE ICÔNE
+      source: 'equipments',
+      filter: ['!', ['has', 'point_count']],
       paint: {
-        ...unclusteredPointLayer.paint,
-        'icon-color': [
+        'circle-color': [
           'case',
           ['==', ['get', 'id'], selectedId || ''],
-          isDesktop ? '#22c55e' : '#e74c3c',
-          '#3498DB'
+          isDesktop ? '#22c55e' : '#e74c3c', // Vert sur desktop, rouge sur mobile
+          '#3498DB' // Couleur par défaut
         ],
-        'icon-halo-color': '#ffffff',
-        'icon-halo-width': [
+        'circle-radius': [
           'case',
           ['==', ['get', 'id'], selectedId || ''],
-          3,
+          8, // Plus grand quand sélectionné
+          6  // Taille normale
+        ],
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': [
+          'case',
+          ['==', ['get', 'id'], selectedId || ''],
+          3, // Bordure plus épaisse quand sélectionné
           2
-        ]
-      },
-      layout: {
-        ...unclusteredPointLayer.layout,
-        'icon-image': 'map-pin', // ✅ TOUJOURS UTILISER LA MÊME IMAGE
-        'icon-size': [
-          'case',
-          ['==', ['get', 'id'], selectedId || ''],
-          0.5, // Plus grand quand sélectionné
-          0.3  // Taille normale
         ]
       }
     };
@@ -449,6 +316,65 @@ export default function MapView() {
     transition: 'color 0.2s ease',
     '@media (maxWidth: 768px)': {
       transform: 'scale(1.2)',
+    }
+  };
+
+  // Ligne ~325-365, corriger la création des images dans createMainImages :
+  const createMainImages = () => {
+    try {
+      // Pin par défaut
+      if (!map.hasImage('map-pin')) {
+        const canvas1 = document.createElement('canvas');
+        const ctx1 = canvas1.getContext('2d');
+        canvas1.width = 30;
+        canvas1.height = 30; // ✅ CORRIGER: était ctx1.height = 30
+        ctx1.beginPath();
+        ctx1.arc(15, 15, 12, 0, 2 * Math.PI);
+        ctx1.fillStyle = '#3498DB';
+        ctx1.fill();
+        ctx1.strokeStyle = '#2980b9';
+        ctx1.lineWidth = 2;
+        ctx1.stroke();
+        map.addImage('map-pin', canvas1);
+        console.log('✅ map-pin créé');
+      }
+
+      // Pin actif
+      if (!map.hasImage('map-pin-active')) {
+        const canvas2 = document.createElement('canvas');
+        const ctx2 = canvas2.getContext('2d');
+        canvas2.width = 30;
+        canvas2.height = 30; // ✅ CORRIGER: était ctx2.height = 30
+        ctx2.beginPath();
+        ctx2.arc(15, 15, 12, 0, 2 * Math.PI);
+        ctx2.fillStyle = '#e74c3c';
+        ctx2.fill();
+        ctx2.strokeStyle = '#c0392b';
+        ctx2.lineWidth = 2;
+        ctx2.stroke();
+        map.addImage('map-pin-active', canvas2);
+        console.log('✅ map-pin-active créé');
+      }
+
+      // Pin vert pour desktop
+      if (!map.hasImage('map-pin-green')) {
+        const canvas3 = document.createElement('canvas');
+        const ctx3 = canvas3.getContext('2d');
+        canvas3.width = 30;
+        ctx3.height = 30; // ✅ CORRIGER: était ctx3.height = 30
+        ctx3.beginPath();
+        ctx3.arc(15, 15, 12, 0, 2 * Math.PI);
+        ctx3.fillStyle = '#22c55e';
+        ctx3.fill();
+        ctx3.strokeStyle = '#16a34a';
+        ctx3.lineWidth = 2;
+        ctx3.stroke();
+        map.addImage('map-pin-green', canvas3);
+        console.log('✅ map-pin-green créé');
+      }
+      
+    } catch (error) {
+      console.error('❌ Erreur création images principales:', error);
     }
   };
 
