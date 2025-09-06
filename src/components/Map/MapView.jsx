@@ -437,10 +437,8 @@ export default function MapView() {
     cursor: 'pointer',
     fontSize: '12px',
     transition: 'all 0.2s ease',
-    // ✅ CORRIGER user-select pour tous les navigateurs
+    // ✅ VERSIONS SIMPLIFIÉES
     WebkitUserSelect: 'none',
-    MozUserSelect: 'none', 
-    msUserSelect: 'none',
     userSelect: 'none'
   };
 
