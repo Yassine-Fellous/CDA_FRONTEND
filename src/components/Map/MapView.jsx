@@ -141,12 +141,20 @@ export default function MapView() {
       setPopupInfoEquipment({
         longitude: longitude,
         latitude: latitude,
-        properties: feature.properties,
-        id: equipmentId,
+        properties: {
+          ...feature.properties,
+          id: equipmentId  // ✅ S'ASSURER QUE L'ID EST DANS properties
+        },
+        id: equipmentId,  // ✅ ET AUSSI EN TANT QUE PROPRIÉTÉ DIRECTE
         geometry: feature.geometry
       });
       
-      console.log('✅ Popup info définie:', { equipmentId, isDesktop });
+      console.log('✅ Popup info définie:', { 
+        equipmentId, 
+        isDesktop,
+        'feature.properties.id': feature.properties.id,
+        'equipmentId final': equipmentId
+      });
     }
   };
 
@@ -310,6 +318,14 @@ export default function MapView() {
   const getUnclusteredPointLayer = () => {
     const isDesktop = window.innerWidth >= 1024;
     
+    // ✅ DEBUG POUR IDENTIFIER LE PROBLÈME
+    console.log('🔍 DEBUG getUnclusteredPointLayer:', {
+      'popupInfoEquipment': popupInfoEquipment,
+      'equipmentId depuis popup': popupInfoEquipment?.properties?.id,
+      'id depuis popup': popupInfoEquipment?.id,
+      'isDesktop': isDesktop
+    });
+    
     return {
       ...unclusteredPointLayer,
       paint: {
@@ -319,13 +335,13 @@ export default function MapView() {
         ...unclusteredPointLayer.layout,
         'icon-image': [
           'case',
-          ['==', ['get', 'id'], popupInfoEquipment?.properties?.id || ''],
+          ['==', ['get', 'id'], popupInfoEquipment?.properties?.id || popupInfoEquipment?.id || ''],
           isDesktop ? 'map-pin-green' : 'map-pin-active', // ✅ VERT SUR DESKTOP
           'map-pin'
         ],
         'icon-size': [
           'case',
-          ['==', ['get', 'id'], popupInfoEquipment?.properties?.id || ''],
+          ['==', ['get', 'id'], popupInfoEquipment?.properties?.id || popupInfoEquipment?.id || ''],
           isDesktop ? 0.6 : 0.4,  // ✅ TAILLES PLUS VISIBLES
           0.3
         ]
@@ -344,23 +360,15 @@ export default function MapView() {
     zIndex: 1,
     display: 'flex',
     flexDirection: 'column',
-    // fontWeight: 'bold',
-    // border: '1px solid #000',
     alignItems: 'center',
     color: 'black',
     cursor: 'pointer',
     fontSize: '12px',
     transition: 'all 0.2s ease',
-    userSelect: 'none',
-    '@media (maxWidth: 768px)': {
-      fontSize: '10px',
-      padding: '4px 8px',
-      borderRadius: '6px',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-    },
-    '&:hover': {
-      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-    }
+    WebkitUserSelect: 'none', // ✅ CORRIGER POUR WEBKIT
+    MozUserSelect: 'none',    // ✅ CORRIGER POUR FIREFOX
+    msUserSelect: 'none',     // ✅ CORRIGER POUR IE
+    userSelect: 'none',       // ✅ STANDARD
   };
 
   const toggleIconStyle = {
