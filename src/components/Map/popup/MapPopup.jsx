@@ -14,10 +14,28 @@ const MapPopup = ({ popupInfo, onClose }) => {
 
   // Fonction pour obtenir l'ID de l'équipement
   const getEquipmentId = (equipment) => {
-    // ✅ SIMPLE : L'ID est maintenant directement le bon !
-    const id = equipment.id || equipment.properties?.id;
-    console.log('✅ ID équipement (auto-incrémenté):', id);
-    return id;
+    console.log('🔍 DEBUG getEquipmentId - equipment reçu:', equipment);
+    
+    // ✅ PRIORITÉ AUX DIFFÉRENTES SOURCES D'ID
+    const possibleIds = [
+      equipment.id,                    // ID depuis MapView
+      equipment.properties?.id,        // ID depuis properties
+      equipment.properties?.gid,       // ID alternatif
+      equipment.properties?.fid,       // ID alternatif
+      equipment.properties?.installation_id // ID installation
+    ];
+    
+    console.log('🔍 IDs possibles:', possibleIds);
+    
+    for (const id of possibleIds) {
+      if (id !== undefined && id !== null && id !== '') {
+        console.log('✅ ID trouvé:', id, 'Type:', typeof id);
+        return id;
+      }
+    }
+    
+    console.error('❌ Aucun ID trouvé dans:', equipment);
+    return null;
   };
 
   // Préparer les données de l'équipement pour la page de rapport

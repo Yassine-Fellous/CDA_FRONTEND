@@ -93,13 +93,18 @@ export default function MapView() {
     const feature = event.features?.[0];
     if (feature && feature.layer.id === 'unclustered-point') {
       console.log('🔍 Feature cliquée:', feature);
-      console.log('🔍 ID équipement:', feature.id); // Maintenant directement l'ID auto-incrémenté !
+      console.log('🔍 feature.id:', feature.id);
+      console.log('🔍 feature.properties:', feature.properties);
+      
+      // ✅ UTILISER L'ID DEPUIS LES PROPERTIES AU LIEU DE feature.id
+      const equipmentId = feature.properties?.id || feature.id;
+      console.log('🔍 ID équipement extrait:', equipmentId);
       
       setPopupInfoEquipment({
         longitude: feature.geometry.coordinates[0],
         latitude: feature.geometry.coordinates[1],
         properties: feature.properties,
-        id: feature.id, // ✅ DIRECTEMENT L'ID AUTO-INCRÉMENTÉ
+        id: equipmentId, // ✅ UTILISER L'ID EXTRAIT
         geometry: feature.geometry
       });
     }
