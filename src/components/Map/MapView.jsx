@@ -39,6 +39,7 @@ export default function MapView() {
   const [showHandicapAccessOnly, setShowHandicapAccessOnly] = useState(false);
   const [showFiltersPopup, setShowFiltersPopup] = useState(false);
   const [showSportsPopup, setShowSportsPopup] = useState(false); // ✅ AJOUTER CETTE LIGNE
+  const [isAnimating, setIsAnimating] = useState(false); // State for animation indicator
 
   const handleSuggestionClick = (suggestion) => {
     console.log('🔍 DEBUG handleSuggestionClick - suggestion:', suggestion);
@@ -103,20 +104,37 @@ export default function MapView() {
     const feature = event.features?.[0];
     if (feature && feature.layer.id === 'unclustered-point') {
       console.log('🔍 Feature cliquée:', feature);
-      console.log('🔍 feature.id:', feature.id);
-      console.log('🔍 feature.properties:', feature.properties);
       
-      // ✅ UTILISER L'ID DEPUIS LES PROPERTIES AU LIEU DE feature.id
       const equipmentId = feature.properties?.id || feature.id;
-      console.log('🔍 ID équipement extrait:', equipmentId);
+      const longitude = feature.geometry.coordinates[0];
+      const latitude = feature.geometry.coordinates[1];
       
-      setPopupInfoEquipment({
-        longitude: feature.geometry.coordinates[0],
-        latitude: feature.geometry.coordinates[1],
-        properties: feature.properties,
-        id: equipmentId, // ✅ UTILISER L'ID EXTRAIT
-        geometry: feature.geometry
-      });
+      // ✅ MARQUER LE DÉBUT DE L'ANIMATION
+      setIsAnimating(true);
+      
+      setViewState(prevState => ({
+        ...prevState,
+        longitude: longitude,
+        latitude: latitude,
+        zoom: Math.max(prevState.zoom, 16),
+        transitionDuration: 800,
+        transitionEasing: t => t * (2 - t),
+        onTransitionEnd: () => {
+          setIsAnimating(false); // ✅ MARQUER LA FIN DE L'ANIMATION
+          console.log('✅ Animation terminée');
+        }
+      }));
+      
+      // ✅ AFFICHER LA POPUP APRÈS UN DÉLAI
+      setTimeout(() => {
+        setPopupInfoEquipment({
+          longitude: longitude,
+          latitude: latitude,
+          properties: feature.properties,
+          id: equipmentId,
+          geometry: feature.geometry
+        });
+      }, 100);
     }
   };
 
@@ -769,6 +787,27 @@ export default function MapView() {
           popupInfo={popupInfoEquipment}
           onClose={() => setPopupInfoEquipment(null)}
         />
+
+        {/* Animation Indicator */}
+        {isAnimating && (
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'rgba(59, 130, 246, 0.9)',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '20px',
+            fontSize: '14px',
+            fontWeight: '500',
+            zIndex: 50,
+            pointerEvents: 'none',
+            animation: 'pulse 1.5s ease-in-out infinite',
+          }}>
+            🎯 Centrage en cours...
+          </div>
+        )}
       </Map>
     </div>
   );
