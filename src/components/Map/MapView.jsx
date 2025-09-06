@@ -107,28 +107,36 @@ export default function MapView() {
       const longitude = feature.geometry.coordinates[0];
       const latitude = feature.geometry.coordinates[1];
       
-      // ✅ OFFSET ADAPTATIF POUR BIEN CENTRER LA POPUP
-      let offset;
-      if (window.innerWidth <= 768) {
-        offset = 0.004; // Mobile : popup en bas
-      } else if (window.innerWidth <= 1200) {
-        offset = 0.010; // Desktop moyen
-      } else {
-        offset = 0.012; // Grand écran
-      }
+      // ✅ CALCUL AUTOMATIQUE SELON LA HAUTEUR D'ÉCRAN
+      const screenHeight = window.innerHeight;
+      const searchBarHeight = 80; // Hauteur de la search bar + marges
+      const popupHeight = window.innerWidth <= 768 ? 300 : 400; // Hauteur approximative popup
       
-      console.log('🎯 Centrage sur popup avec offset:', offset);
+      // ✅ CALCULER L'OFFSET POUR QUE LA POPUP SOIT CENTRÉE DANS L'ESPACE LIBRE
+      const availableHeight = screenHeight - searchBarHeight;
+      const offsetPixels = (availableHeight / 2) - (popupHeight / 2) + searchBarHeight;
+      
+      // ✅ CONVERTIR EN DEGRÉS (approximation)
+      const degreesPerPixel = 0.000012; // Approximation pour le niveau de zoom moyen
+      const offset = offsetPixels * degreesPerPixel;
+      
+      console.log('📊 Calcul automatique:', {
+        screenHeight,
+        availableHeight,
+        offsetPixels,
+        offsetDegrees: offset
+      });
       
       setViewState(prevState => ({
         ...prevState,
         longitude: longitude,
-        latitude: latitude + offset, // ✅ CENTRE DE LA CARTE = POPUP
-        transitionDuration: 500
+        latitude: latitude + offset,
+        transitionDuration: 400
       }));
       
       setPopupInfoEquipment({
         longitude: longitude,
-        latitude: latitude, // ✅ POINT RESTE À SA POSITION ORIGINALE
+        latitude: latitude,
         properties: feature.properties,
         id: equipmentId,
         geometry: feature.geometry
