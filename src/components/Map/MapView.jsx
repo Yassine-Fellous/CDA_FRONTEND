@@ -38,6 +38,7 @@ export default function MapView() {
   const [showFreeAccessOnly, setShowFreeAccessOnly] = useState(false);
   const [showHandicapAccessOnly, setShowHandicapAccessOnly] = useState(false);
   const [showFiltersPopup, setShowFiltersPopup] = useState(false);
+  const [showSportsPopup, setShowSportsPopup] = useState(false); // ✅ AJOUTER CETTE LIGNE
 
   const handleSuggestionClick = (suggestion) => {
     console.log('🔍 DEBUG handleSuggestionClick - suggestion:', suggestion);
@@ -312,22 +313,66 @@ export default function MapView() {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      {/* Filter Icon Button */}
-      <div 
-        style={{
-          position: 'absolute',
-          top: '20px', // Changed from 80px to 20px to align with SearchBar
-          right: '10px',
-          backgroundColor: 'white',
-          padding: '8px',
-          borderRadius: '8px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          zIndex: 49,
-          cursor: 'pointer',
-        }}
-        onClick={() => setShowFiltersPopup(true)}
-      >
-        <Filter size={24} color="black" />
+      {/* Top Right Controls */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        right: '10px',
+        display: 'flex',
+        gap: '8px',
+        zIndex: 49,
+      }}>
+        {/* Sports Button */}
+        <div 
+          style={{
+            backgroundColor: activeFilters.length > 0 ? '#3b82f6' : 'white',
+            color: activeFilters.length > 0 ? 'white' : 'black',
+            padding: '8px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            cursor: 'pointer',
+            position: 'relative',
+            transition: 'all 0.2s ease',
+          }}
+          onClick={() => setShowSportsPopup(!showSportsPopup)}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '20px' }}>⚽</span>
+            {activeFilters.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-8px',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                borderRadius: '50%',
+                width: '20px',
+                height: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 'bold',
+              }}>
+                {activeFilters.length}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Filter Button */}
+        <div 
+          style={{
+            backgroundColor: 'white',
+            padding: '8px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            cursor: 'pointer',
+          }}
+          onClick={() => setShowFiltersPopup(true)}
+        >
+          <Filter size={24} color="black" />
+        </div>
       </div>
 
       {/* Filters Bottom Sheet */}
@@ -503,8 +548,178 @@ export default function MapView() {
         </div>
       )}
 
-      {/* Remove the old toggle container */}
-      
+      {/* Sports Selection Popup */}
+      {showSportsPopup && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            width: '100%',
+            height: activeFilters.length > 0 ? '40%' : '35%',
+            backgroundColor: 'white',
+            borderTopLeftRadius: '20px',
+            borderTopRightRadius: '20px',
+            boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
+            zIndex: 49,
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+          }}
+        >
+          {/* Header */}
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px 0' }}>
+            <div style={{ position: 'absolute', width: '100%', textAlign: 'center' }}>
+              <h3 style={{ margin: 0, fontWeight: 600, color: '#000000' }}>
+                Sports sélectionnés {activeFilters.length > 0 && `(${activeFilters.length})`}
+              </h3>
+            </div>
+            <button
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                border: '1px solid #000000',
+                borderRadius: '10px',
+                background: 'white',
+                fontSize: '24px',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#000000',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                transition: 'box-shadow 0.2s ease',
+              }}
+              onClick={() => setShowSportsPopup(false)}
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Content */}
+          {activeFilters.length > 0 ? (
+            <>
+              {/* Clear All Button */}
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button
+                  onClick={() => {
+                    setActiveFilters([]);
+                    setShowSportsPopup(false);
+                  }}
+                  style={{
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
+                >
+                  🗑️ Tout effacer
+                </button>
+              </div>
+
+              {/* Sports List */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '12px',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                padding: '8px',
+              }}>
+                {activeFilters.map((filter, index) => (
+                  <div key={index} style={{
+                    backgroundColor: '#f8fafc',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <span style={{
+                        color: '#1e293b',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        lineHeight: '1.4',
+                      }}>
+                        {filter.length > 30 ? `${filter.substring(0, 30)}...` : filter}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveFilter(filter)}
+                      style={{
+                        backgroundColor: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        marginLeft: '8px',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = '#dc2626';
+                        e.target.style.transform = 'scale(1.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = '#ef4444';
+                        e.target.style.transform = 'scale(1)';
+                      }}
+                      title={`Supprimer "${filter}"`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            /* Empty State */
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: 1,
+              textAlign: 'center',
+              color: '#6b7280',
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#374151' }}>
+                Aucun sport sélectionné
+              </h4>
+              <p style={{ margin: 0, fontSize: '14px' }}>
+                Utilisez la barre de recherche pour filtrer par sport
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       <Map
         style={{ width: '100vw', height: '100vh' }}
         {...viewState}
@@ -530,51 +745,6 @@ export default function MapView() {
             suggestions={searchSuggestions}
             onSuggestionClick={handleSuggestionClick}
           />
-        </div>
-
-        {/* Active Filters */}
-        <div style={{
-          position: 'absolute',
-          top: '150px',
-          right: '10px',
-          display: 'flex',
-          flexDirection: 'column',
-          flexWrap: 'wrap',
-          gap: '8px',
-          zIndex: 49,
-          minHeight: '50px',
-        }}>
-          {activeFilters.map((filter, index) => (
-            <div key={index} style={{
-              // text style black
-              color: '#000000',
-              backgroundColor: '#ffffff',
-              padding: '6px 12px',
-              borderRadius: '20px',
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: '8px',
-              maxWidth: '200px',
-              maxHeigth: '50px',
-            }}>
-              {filter}
-              <button
-                style={{
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  display: 'flex',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#6b7280',
-                }}
-                onClick={() => handleRemoveFilter(filter)}
-              >
-                ×
-              </button>
-            </div>
-          ))}
         </div>
 
         {/* Map Layers */}
