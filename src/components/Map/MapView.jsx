@@ -317,33 +317,45 @@ export default function MapView() {
   // Update the unclusteredPointLayer to use different icons based on active state
   const getUnclusteredPointLayer = () => {
     const isDesktop = window.innerWidth >= 1024;
+    const selectedId = popupInfoEquipment?.properties?.id || popupInfoEquipment?.id;
     
-    // ✅ DEBUG POUR IDENTIFIER LE PROBLÈME
     console.log('🔍 DEBUG getUnclusteredPointLayer:', {
-      'popupInfoEquipment': popupInfoEquipment,
-      'equipmentId depuis popup': popupInfoEquipment?.properties?.id,
-      'id depuis popup': popupInfoEquipment?.id,
+      'selectedId': selectedId,
       'isDesktop': isDesktop
     });
     
     return {
       ...unclusteredPointLayer,
       paint: {
-        ...unclusteredPointLayer.paint
+        ...unclusteredPointLayer.paint,
+        // ✅ UTILISER LA COULEUR DIRECTEMENT
+        'icon-color': [
+          'case',
+          ['==', ['get', 'id'], selectedId || ''],
+          isDesktop ? '#22c55e' : '#e74c3c', // Vert sur desktop, rouge sur mobile
+          '#3498DB' // Couleur par défaut
+        ],
+        'icon-halo-color': [
+          'case',
+          ['==', ['get', 'id'], selectedId || ''],
+          '#ffffff',
+          '#ffffff'
+        ],
+        'icon-halo-width': [
+          'case',
+          ['==', ['get', 'id'], selectedId || ''],
+          3, // Halo plus épais pour le point sélectionné
+          2
+        ]
       },
       layout: {
         ...unclusteredPointLayer.layout,
-        'icon-image': [
-          'case',
-          ['==', ['get', 'id'], popupInfoEquipment?.properties?.id || popupInfoEquipment?.id || ''],
-          isDesktop ? 'map-pin-green' : 'map-pin-active', // ✅ VERT SUR DESKTOP
-          'map-pin'
-        ],
+        'icon-image': 'map-pin', // ✅ UTILISER SEULEMENT LE PIN NORMAL
         'icon-size': [
           'case',
-          ['==', ['get', 'id'], popupInfoEquipment?.properties?.id || popupInfoEquipment?.id || ''],
-          isDesktop ? 0.6 : 0.4,  // ✅ TAILLES PLUS VISIBLES
-          0.3
+          ['==', ['get', 'id'], selectedId || ''],
+          isDesktop ? 0.5 : 0.45, // Plus grand quand sélectionné
+          0.28
         ]
       }
     };
