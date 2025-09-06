@@ -107,19 +107,29 @@ export default function MapView() {
       const longitude = feature.geometry.coordinates[0];
       const latitude = feature.geometry.coordinates[1];
       
-      // ✅ OFFSET TESTÉ POUR POSITIONNER ENTRE SEARCH BAR ET POPUP
+      // ✅ CALCULS FIXES SELON LA TAILLE D'ÉCRAN
+      const isMobile = window.innerWidth <= 768;
+      const screenHeight = window.innerHeight;
+      
       let offset;
-      if (window.innerWidth <= 768) {
-        offset = 0.003; // Mobile : position optimale testée
-      } else if (window.innerWidth <= 1200) {
-        offset = 0.006; // Tablette/Desktop moyen
+      if (isMobile) {
+        // Mobile : search bar + popup mobile
+        const searchBarHeight = 60;
+        const popupHeight = 300;
+        const middleSpace = (screenHeight - searchBarHeight - popupHeight) / 2;
+        offset = (middleSpace / screenHeight) * 0.01; // Conversion approximative
       } else {
-        offset = 0.008; // Grand écran
+        // Desktop : search bar + popup desktop  
+        const searchBarHeight = 80;
+        const popupHeight = 400;
+        const middleSpace = (screenHeight - searchBarHeight - popupHeight) / 2;
+        offset = (middleSpace / screenHeight) * 0.012; // Conversion approximative
       }
       
-      console.log('🎯 Centrage optimisé:', { 
-        screenWidth: window.innerWidth, 
-        offset 
+      console.log('🎯 Calcul simplifié:', {
+        isMobile,
+        screenHeight,
+        offset
       });
       
       setViewState(prevState => ({
