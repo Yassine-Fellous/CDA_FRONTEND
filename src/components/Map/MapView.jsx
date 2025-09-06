@@ -152,29 +152,43 @@ export default function MapView() {
     // Apply active filters
     if (activeFilters.length > 0) {
       features = features.filter(feature => {
-        // ✅ VÉRIFICATION AVANT formatSports
         const sportsProperty = feature.properties.sports;
-        if (!sportsProperty || typeof sportsProperty !== 'string') {
-          console.warn('getFilteredFeatures: propriété sports invalide:', sportsProperty);
+        
+        // ✅ GÉRER LES DEUX FORMATS : Array ET String
+        let equipmentSports = [];
+        
+        if (Array.isArray(sportsProperty)) {
+          // ✅ Si c'est déjà un Array, l'utiliser directement
+          equipmentSports = sportsProperty;
+          console.log('🔍 Sports (Array):', equipmentSports);
+        } else if (typeof sportsProperty === 'string') {
+          // ✅ Si c'est une string, utiliser formatSports
+          const formattedSports = formatSports(sportsProperty);
+          if (formattedSports === 'Non spécifié') {
+            return false;
+          }
+          equipmentSports = formattedSports.split(', ').map(s => s.trim());
+          console.log('🔍 Sports (String formatée):', equipmentSports);
+        } else {
+          // ✅ Si ce n'est ni Array ni String, exclure
+          console.warn('getFilteredFeatures: propriété sports invalide:', sportsProperty, 'Type:', typeof sportsProperty);
           return false;
         }
-        
-        // ✅ UTILISER formatSports DES UTILS
-        const formattedSports = formatSports(sportsProperty);
-        if (formattedSports === 'Non spécifié') {
-          return false;
-        }
-        
-        // Convertir en array pour la comparaison
-        const equipmentSports = formattedSports.split(', ').map(s => s.trim());
         
         // ✅ VÉRIFIER SI AU MOINS UN FILTRE ACTIF CORRESPOND
-        return activeFilters.some(filter => 
-          equipmentSports.some(sport => 
-            sport.toLowerCase().includes(filter.toLowerCase()) || 
-            filter.toLowerCase().includes(sport.toLowerCase())
-          )
+        const hasMatch = activeFilters.some(filter => 
+          equipmentSports.some(sport => {
+            const sportLower = sport.toLowerCase();
+            const filterLower = filter.toLowerCase();
+            return sportLower.includes(filterLower) || filterLower.includes(sportLower);
+          })
         );
+        
+        if (hasMatch) {
+          console.log('✅ Match trouvé pour:', equipmentSports, 'avec filtre:', activeFilters);
+        }
+        
+        return hasMatch;
       });
       
       console.log('🔍 Filtrage par sports:', {
