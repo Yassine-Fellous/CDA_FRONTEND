@@ -106,19 +106,20 @@ export default function MapView() {
       const longitude = feature.geometry.coordinates[0];
       const latitude = feature.geometry.coordinates[1];
       
+      console.log('🎯 Clic équipement:', { equipmentId, longitude, latitude });
+      
       // ✅ DÉTECTER SI ON EST SUR DESKTOP
       const isDesktop = window.innerWidth >= 1024;
+      console.log('🖥️ Desktop detecté:', isDesktop);
       
       if (!isDesktop) {
-        // ✅ MOBILE/TABLETTE : Centrage avec offset (code existant)
+        // Mobile/Tablette
         let offset;
         if (window.innerWidth <= 768) {
-          offset = 0.004;  // Mobile
+          offset = 0.004;
         } else {
-          offset = 0.015;  // Tablette
+          offset = 0.015;
         }
-        
-        console.log('📱 Mobile/Tablette - Marge calculée:', offset);
         
         setViewState(prevState => ({
           ...prevState,
@@ -127,13 +128,11 @@ export default function MapView() {
           transitionDuration: 600
         }));
       } else {
-        // ✅ DESKTOP : Centrage direct sur le point (pas d'offset)
-        console.log('🖥️ Desktop - Centrage direct sur le point');
-        
+        // Desktop : centrage direct
         setViewState(prevState => ({
           ...prevState,
           longitude: longitude,
-          latitude: latitude, // ✅ PAS D'OFFSET SUR DESKTOP
+          latitude: latitude,
           transitionDuration: 400
         }));
       }
@@ -146,6 +145,8 @@ export default function MapView() {
         id: equipmentId,
         geometry: feature.geometry
       });
+      
+      console.log('✅ Popup info définie:', { equipmentId, isDesktop });
     }
   };
 
@@ -276,25 +277,33 @@ export default function MapView() {
       }
     });
 
-    // ✅ CRÉER UN PIN VERT POUR DESKTOP
+    // ✅ CRÉER UN PIN VERT PLUS VISIBLE POUR DESKTOP
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    canvas.width = 40;
-    canvas.height = 40;
+    canvas.width = 50;  // ✅ PLUS GRAND
+    canvas.height = 50; // ✅ PLUS GRAND
     
-    // Dessiner un cercle vert
+    // Dessiner un cercle vert avec bordure
     ctx.beginPath();
-    ctx.arc(20, 20, 15, 0, 2 * Math.PI);
+    ctx.arc(25, 25, 20, 0, 2 * Math.PI); // ✅ CERCLE PLUS GRAND
     ctx.fillStyle = '#22c55e'; // Vert
     ctx.fill();
     ctx.strokeStyle = '#16a34a'; // Bordure verte plus foncée
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3; // ✅ BORDURE PLUS ÉPAISSE
     ctx.stroke();
+    
+    // Ajouter un point blanc au centre
+    ctx.beginPath();
+    ctx.arc(25, 25, 5, 0, 2 * Math.PI);
+    ctx.fillStyle = 'white';
+    ctx.fill();
     
     // Ajouter le pin vert à la carte
     if (!map.hasImage('map-pin-green')) {
       map.addImage('map-pin-green', canvas);
     }
+    
+    console.log('✅ Pin vert créé pour desktop');
   };
 
   // Update the unclusteredPointLayer to use different icons based on active state
@@ -317,7 +326,7 @@ export default function MapView() {
         'icon-size': [
           'case',
           ['==', ['get', 'id'], popupInfoEquipment?.properties?.id || ''],
-          isDesktop ? 0.5 : 0.10,  // ✅ TAILLE DIFFÉRENTE SELON DEVICE
+          isDesktop ? 0.6 : 0.4,  // ✅ TAILLES PLUS VISIBLES
           0.3
         ]
       }
@@ -777,9 +786,9 @@ export default function MapView() {
         style={{ 
           width: '100vw', 
           height: '100vh',
-          // ✅ DÉCALER LA CARTE SI SIDEBAR DESKTOP OUVERTE
-          marginLeft: (window.innerWidth >= 1024 && popupInfoEquipment) ? '400px' : '0',
-          transition: 'margin-left 0.3s ease'
+          // ✅ SUPPRIMER LA MARGE - PAS DE DÉCALAGE
+          // marginLeft: (window.innerWidth >= 1024 && popupInfoEquipment) ? '400px' : '0',
+          // transition: 'margin-left 0.3s ease'
         }}
         {...viewState}
         onMove={evt => setViewState(evt.viewState)}
@@ -818,7 +827,7 @@ export default function MapView() {
           >
             <Layer {...clusterLayer} />
             <Layer {...clusterCountLayer} />
-            <Layer {...getUnclusteredPointLayer()} />
+            <Layer {...getUnclusteredPointLayer()} key={popupInfoEquipment?.properties?.id || 'default'} />
             <Layer {...sportIconLayer} />
           </Source>
         )}
