@@ -106,40 +106,39 @@ export default function MapView() {
       const longitude = feature.geometry.coordinates[0];
       const latitude = feature.geometry.coordinates[1];
       
-      console.log('🎯 Clic sur équipement:', { equipmentId, longitude, latitude });
-      
-      // ✅ MARGE ÉNORME POUR DESKTOP
+      // ✅ MARGES EXTRÊMES SELON LA TAILLE D'ÉCRAN
       let offset;
       if (window.innerWidth <= 768) {
-        offset = 0.003; // Mobile : popup en bas, petite marge
-      } else if (window.innerWidth <= 1200) {
-        offset = 0.012; // Tablette : marge importante
+        offset = 0.004;  // Mobile
+      } else if (window.innerWidth <= 1024) {
+        offset = 0.015;  // Tablette
+      } else if (window.innerWidth <= 1440) {
+        offset = 0.022;  // Desktop standard
       } else {
-        offset = 0.018; // Desktop : MARGE TRÈS IMPORTANTE
+        offset = 0.028;  // Grand écran
       }
       
-      console.log('📱 Device et marge:', { 
-        screenWidth: window.innerWidth, 
+      console.log('🎯 Marge calculée:', {
+        screenWidth: window.innerWidth,
+        screenHeight: window.innerHeight,
         offset,
-        device: window.innerWidth <= 768 ? 'mobile' : window.innerWidth <= 1200 ? 'tablette' : 'desktop'
+        'Marge en mètres (approx)': offset * 111000
       });
       
       setViewState(prevState => ({
         ...prevState,
         longitude: longitude,
-        latitude: latitude + offset, // ✅ DÉCALAGE IMPORTANT
-        transitionDuration: 500
+        latitude: latitude + offset,
+        transitionDuration: 600
       }));
       
       setPopupInfoEquipment({
         longitude: longitude,
-        latitude: latitude, // ✅ POPUP À LA POSITION ORIGINALE
+        latitude: latitude,
         properties: feature.properties,
         id: equipmentId,
         geometry: feature.geometry
       });
-      
-      console.log('✅ Carte recentrée avec marge importante');
     }
   };
 
