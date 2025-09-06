@@ -19,6 +19,19 @@
   font-family: 'Rubik', system-ui, sans-serif !important;
 }
 
+/* ✅ CORRIGER user-select globalement */
+.mapboxgl-map * {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* ✅ SUPPRIMER LES WARNINGS WebGL */
+.mapboxgl-canvas {
+  outline: none !important;
+}
+
 body {
   line-height: 1.5;
   font-weight: 400;
