@@ -37,9 +37,15 @@ export default function MapView() {
   const [showFiltersPopup, setShowFiltersPopup] = useState(false);
 
   const handleSuggestionClick = (suggestion) => {
+    console.log('🔍 DEBUG handleSuggestionClick - suggestion:', suggestion);
+    console.log('🔍 DEBUG handleSuggestionClick - typeof suggestion:', typeof suggestion);
+    console.log('🔍 DEBUG handleSuggestionClick - activeFilters avant:', activeFilters);
+    
     // Add the selected suggestion to active filters
     if (!activeFilters.includes(suggestion)) {
-      setActiveFilters([...activeFilters, suggestion]);
+      const newFilters = [...activeFilters, suggestion];
+      console.log('🔍 DEBUG handleSuggestionClick - nouveaux filtres:', newFilters);
+      setActiveFilters(newFilters);
     }
     // Clear suggestions
     setSearchSuggestions([]);
@@ -111,11 +117,24 @@ export default function MapView() {
   };
 
   const formatSports = (sports) => {
-    const regex = /'([^']*)'|"([^"]*)"/g;
-    if (!sports) {
+    // ✅ VÉRIFICATION ROBUSTE DU TYPE
+    if (!sports || typeof sports !== 'string') {
+      console.warn('formatSports MapView: valeur invalide:', sports, 'Type:', typeof sports);
       return [];
     }
+    
+    if (sports.trim() === '') {
+      return [];
+    }
+    
+    const regex = /'([^']*)'|"([^"]*)"/g;
     const sportsArray = sports.match(regex);
+    
+    if (!sportsArray) {
+      console.warn('formatSports MapView: aucun match pour:', sports);
+      return [];
+    }
+    
     return sportsArray.map(sport => sport.replace(/['"]+/g, ''));
   };
 
@@ -152,23 +171,36 @@ export default function MapView() {
     // Apply active filters
     if (activeFilters.length > 0) {
       features = features.filter(feature => {
-        const equipmentSports = formatSports(feature.properties.sports);
+        // ✅ VÉRIFICATION AVANT formatSports
+        const sportsProperty = feature.properties.sports;
+        if (!sportsProperty || typeof sportsProperty !== 'string') {
+          console.warn('getFilteredFeatures: propriété sports invalide:', sportsProperty);
+          return false; // Exclure les équipements sans sports valides
+        }
+        
+        const equipmentSports = formatSports(sportsProperty);
         return activeFilters.some(filter => equipmentSports.includes(filter));
       });
     }
 
     // Apply free access filter
     if (showFreeAccessOnly) {
-      features = features.filter(feature => feature.properties.free_access === true);
+      features = features.filter(feature => {
+        const freeAccess = feature.properties.free_access;
+        return freeAccess === true || freeAccess === 'true' || freeAccess === 'Oui';
+      });
     }
 
     // Apply handicap access filter
     if (showHandicapAccessOnly) {
-      features = features.filter(feature => feature.properties.inst_acc_handi_bool === true);
+      features = features.filter(feature => {
+        const handicapAccess = feature.properties.inst_acc_handi_bool;
+        return handicapAccess === true;
+      });
     }
 
     return {
-      type: 'FeatureCollection',
+      ...equipments,
       features: features
     };
   };
