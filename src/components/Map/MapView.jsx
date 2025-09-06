@@ -107,14 +107,14 @@ export default function MapView() {
       const longitude = feature.geometry.coordinates[0];
       const latitude = feature.geometry.coordinates[1];
       
-      // ✅ DÉCALAGE SIMPLE VERS LE HAUT
+      // ✅ DÉCALAGE SIMPLE VERS LE HAUT SANS ZOOM
       const offset = window.innerWidth <= 768 ? 0.0025 : 0.0015;
       
       setViewState(prevState => ({
         ...prevState,
         longitude: longitude,
         latitude: latitude + offset, // ✅ POINT PLUS HAUT DANS LA VUE
-        zoom: Math.max(prevState.zoom, 16),
+        // zoom: Math.max(prevState.zoom, 16), // ✅ SUPPRIMER CETTE LIGNE
         transitionDuration: 400
       }));
       
