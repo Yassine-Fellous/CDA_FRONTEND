@@ -10,6 +10,9 @@ import './MapPopup.css';
 const MapPopup = ({ popupInfo, onClose }) => {
   const navigate = useNavigate();
   
+  // ✅ DÉTECTER SI ON EST SUR DESKTOP
+  const isDesktop = window.innerWidth >= 1024;
+  
   if (!popupInfo) return null;
 
   // Fonction pour obtenir l'ID de l'équipement
@@ -70,6 +73,250 @@ const MapPopup = ({ popupInfo, onClose }) => {
     navigate(reportUrl);
   };
 
+  // ✅ VERSION DESKTOP - SIDEBAR VERTICALE
+  if (isDesktop) {
+    return (
+      <div style={{
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: '400px',
+        backgroundColor: 'white',
+        boxShadow: '4px 0 20px rgba(0, 0, 0, 0.15)',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        borderRight: '1px solid #e5e7eb',
+        overflowY: 'auto',
+      }}>
+        {/* Header avec bouton fermer */}
+        <div style={{
+          padding: '20px',
+          borderBottom: '1px solid #e5e7eb',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: '#f8fafc',
+        }}>
+          <h2 style={{
+            margin: 0,
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+          }}>
+            Détails de l'équipement
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              color: '#6b7280',
+              padding: '4px',
+              borderRadius: '4px',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#f3f4f6';
+              e.target.style.color = '#374151';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'transparent';
+              e.target.style.color = '#6b7280';
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Contenu */}
+        <div style={{
+          flex: 1,
+          padding: '24px',
+          overflowY: 'auto',
+        }}>
+          {/* Nom de l'équipement */}
+          {popupInfo.properties.name && (
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{
+                margin: '0 0 8px 0',
+                fontSize: '20px',
+                fontWeight: '700',
+                color: '#111827',
+                lineHeight: '1.3',
+              }}>
+                {popupInfo.properties.name}
+              </h3>
+            </div>
+          )}
+
+          {/* Type d'équipement */}
+          <div style={{ marginBottom: '20px' }}>
+            {popupInfo.properties.family === popupInfo.properties.type ? (
+              <p style={{ margin: 0, fontSize: '16px', color: '#374151', fontWeight: '500' }}>
+                {popupInfo.properties.family}
+              </p>
+            ) : (
+              <>
+                <p style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#374151', fontWeight: '500' }}>
+                  {popupInfo.properties.family}
+                </p>
+                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
+                  {popupInfo.properties.type}
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* Adresse */}
+          {popupInfo.properties.address && (
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                <span style={{ fontSize: '16px', marginTop: '2px' }}>📍</span>
+                <div>
+                  <p style={{
+                    margin: 0,
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '4px',
+                  }}>
+                    Adresse :
+                  </p>
+                  <p style={{
+                    margin: 0,
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    lineHeight: '1.4',
+                  }}>
+                    {popupInfo.properties.address}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sports */}
+          {popupInfo.properties.sports && (
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{
+                margin: '0 0 8px 0',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+              }}>
+                Sports disponibles :
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {(() => {
+                  try {
+                    return backgroundStyleSport(popupInfo.properties.sports);
+                  } catch (error) {
+                    console.error('Erreur affichage sports:', error);
+                    return <span style={{ color: '#9ca3af', fontSize: '14px' }}>Sports non disponibles</span>;
+                  }
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* Accès libre */}
+          {popupInfo.properties.free_access && (
+            <div style={{
+              marginBottom: '16px',
+              padding: '12px',
+              backgroundColor: '#ecfdf5',
+              borderRadius: '8px',
+              border: '1px solid #d1fae5',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '16px' }}>🆓</span>
+                <p style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#065f46',
+                }}>
+                  Accès libre : {popupInfo.properties.free_access === false ? "Non" : "Oui"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Accès handicapé */}
+          {typeof popupInfo.properties.inst_acc_handi_bool === 'boolean' && (
+            <div style={{
+              marginBottom: '16px',
+              padding: '12px',
+              backgroundColor: popupInfo.properties.inst_acc_handi_bool ? '#eff6ff' : '#fef2f2',
+              borderRadius: '8px',
+              border: `1px solid ${popupInfo.properties.inst_acc_handi_bool ? '#dbeafe' : '#fecaca'}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '16px' }}>
+                  {popupInfo.properties.inst_acc_handi_bool ? '♿' : '🚫'}
+                </span>
+                <p style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: popupInfo.properties.inst_acc_handi_bool ? '#1e40af' : '#dc2626',
+                }}>
+                  Accès handicapé : {popupInfo.properties.inst_acc_handi_bool ? "Oui" : "Non"}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bouton signalement fixe en bas */}
+        <div style={{
+          padding: '20px',
+          borderTop: '1px solid #e5e7eb',
+          backgroundColor: '#f8fafc',
+        }}>
+          <button
+            onClick={handleReportClick}
+            style={{
+              width: '100%',
+              backgroundColor: '#ef4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#dc2626';
+              e.target.style.transform = 'translateY(-1px)';
+              e.target.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#ef4444';
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.2)';
+            }}
+          >
+            <span style={{ fontSize: '16px' }}>⚠️</span>
+            Signaler un problème
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ VERSION MOBILE - POPUP CLASSIQUE (code existant)
   return (
     <Popup
       longitude={popupInfo.longitude}

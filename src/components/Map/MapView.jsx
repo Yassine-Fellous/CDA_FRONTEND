@@ -106,32 +106,39 @@ export default function MapView() {
       const longitude = feature.geometry.coordinates[0];
       const latitude = feature.geometry.coordinates[1];
       
-      // ✅ MARGES EXTRÊMES SELON LA TAILLE D'ÉCRAN
-      let offset;
-      if (window.innerWidth <= 768) {
-        offset = 0.004;  // Mobile
-      } else if (window.innerWidth <= 1024) {
-        offset = 0.015;  // Tablette
-      } else if (window.innerWidth <= 1440) {
-        offset = 0.022;  // Desktop standard
+      // ✅ DÉTECTER SI ON EST SUR DESKTOP
+      const isDesktop = window.innerWidth >= 1024;
+      
+      if (!isDesktop) {
+        // ✅ MOBILE/TABLETTE : Centrage avec offset (code existant)
+        let offset;
+        if (window.innerWidth <= 768) {
+          offset = 0.004;  // Mobile
+        } else {
+          offset = 0.015;  // Tablette
+        }
+        
+        console.log('📱 Mobile/Tablette - Marge calculée:', offset);
+        
+        setViewState(prevState => ({
+          ...prevState,
+          longitude: longitude,
+          latitude: latitude + offset,
+          transitionDuration: 600
+        }));
       } else {
-        offset = 0.028;  // Grand écran
+        // ✅ DESKTOP : Centrage direct sur le point (pas d'offset)
+        console.log('🖥️ Desktop - Centrage direct sur le point');
+        
+        setViewState(prevState => ({
+          ...prevState,
+          longitude: longitude,
+          latitude: latitude, // ✅ PAS D'OFFSET SUR DESKTOP
+          transitionDuration: 400
+        }));
       }
       
-      console.log('🎯 Marge calculée:', {
-        screenWidth: window.innerWidth,
-        screenHeight: window.innerHeight,
-        offset,
-        'Marge en mètres (approx)': offset * 111000
-      });
-      
-      setViewState(prevState => ({
-        ...prevState,
-        longitude: longitude,
-        latitude: latitude + offset,
-        transitionDuration: 600
-      }));
-      
+      // ✅ AFFICHER LA POPUP/SIDEBAR
       setPopupInfoEquipment({
         longitude: longitude,
         latitude: latitude,
@@ -248,7 +255,7 @@ export default function MapView() {
     const map = event.target;
     setStyleLoaded(true);
     
-    // Load both regular and active pin images
+    // ✅ CHARGER LES IMAGES DES PINS
     map.loadImage('/map-pinv9.png', (error, image) => {
       if (error) {
         console.error('Error loading regular pin image:', error);
@@ -268,30 +275,54 @@ export default function MapView() {
         map.addImage('map-pin-active', image);
       }
     });
+
+    // ✅ CRÉER UN PIN VERT POUR DESKTOP
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 40;
+    canvas.height = 40;
+    
+    // Dessiner un cercle vert
+    ctx.beginPath();
+    ctx.arc(20, 20, 15, 0, 2 * Math.PI);
+    ctx.fillStyle = '#22c55e'; // Vert
+    ctx.fill();
+    ctx.strokeStyle = '#16a34a'; // Bordure verte plus foncée
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Ajouter le pin vert à la carte
+    if (!map.hasImage('map-pin-green')) {
+      map.addImage('map-pin-green', canvas);
+    }
   };
 
   // Update the unclusteredPointLayer to use different icons based on active state
-  const getUnclusteredPointLayer = () => ({
-    ...unclusteredPointLayer,
-    paint: {
-      ...unclusteredPointLayer.paint
-    },
-    layout: {
-      ...unclusteredPointLayer.layout,
-      'icon-image': [
-        'case',
-        ['==', ['get', 'id'], popupInfoEquipment?.properties?.id || ''],
-        'map-pin-active',
-        'map-pin'
-      ],
-      'icon-size': [
-        'case',
-        ['==', ['get', 'id'], popupInfoEquipment?.properties?.id || ''],
-        0.10,  // size for active pin
-        0.3   // size for regular pin
-      ]
-    }
-  });
+  const getUnclusteredPointLayer = () => {
+    const isDesktop = window.innerWidth >= 1024;
+    
+    return {
+      ...unclusteredPointLayer,
+      paint: {
+        ...unclusteredPointLayer.paint
+      },
+      layout: {
+        ...unclusteredPointLayer.layout,
+        'icon-image': [
+          'case',
+          ['==', ['get', 'id'], popupInfoEquipment?.properties?.id || ''],
+          isDesktop ? 'map-pin-green' : 'map-pin-active', // ✅ VERT SUR DESKTOP
+          'map-pin'
+        ],
+        'icon-size': [
+          'case',
+          ['==', ['get', 'id'], popupInfoEquipment?.properties?.id || ''],
+          isDesktop ? 0.5 : 0.10,  // ✅ TAILLE DIFFÉRENTE SELON DEVICE
+          0.3
+        ]
+      }
+    };
+  };
 
   const toggleContainerStyle = {
     position: 'absolute',
@@ -743,7 +774,13 @@ export default function MapView() {
       )}
 
       <Map
-        style={{ width: '100vw', height: '100vh' }}
+        style={{ 
+          width: '100vw', 
+          height: '100vh',
+          // ✅ DÉCALER LA CARTE SI SIDEBAR DESKTOP OUVERTE
+          marginLeft: (window.innerWidth >= 1024 && popupInfoEquipment) ? '400px' : '0',
+          transition: 'margin-left 0.3s ease'
+        }}
         {...viewState}
         onMove={evt => setViewState(evt.viewState)}
         mapboxAccessToken={MAPBOX_TOKEN}
