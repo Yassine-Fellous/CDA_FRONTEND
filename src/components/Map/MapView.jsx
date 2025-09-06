@@ -103,38 +103,29 @@ export default function MapView() {
   const onClick = (event) => {
     const feature = event.features?.[0];
     if (feature && feature.layer.id === 'unclustered-point') {
-      console.log('🔍 Feature cliquée:', feature);
-      
       const equipmentId = feature.properties?.id || feature.id;
       const longitude = feature.geometry.coordinates[0];
       const latitude = feature.geometry.coordinates[1];
       
-      // ✅ MARQUER LE DÉBUT DE L'ANIMATION
-      setIsAnimating(true);
+      // ✅ DÉCALAGE SIMPLE VERS LE HAUT
+      const offset = window.innerWidth <= 768 ? 0.0025 : 0.0015;
       
       setViewState(prevState => ({
         ...prevState,
         longitude: longitude,
-        latitude: latitude,
+        latitude: latitude + offset, // ✅ POINT PLUS HAUT DANS LA VUE
         zoom: Math.max(prevState.zoom, 16),
-        transitionDuration: 800,
-        transitionEasing: t => t * (2 - t),
-        onTransitionEnd: () => {
-          setIsAnimating(false); // ✅ MARQUER LA FIN DE L'ANIMATION
-          console.log('✅ Animation terminée');
-        }
+        transitionDuration: 400
       }));
       
-      // ✅ AFFICHER LA POPUP APRÈS UN DÉLAI
-      setTimeout(() => {
-        setPopupInfoEquipment({
-          longitude: longitude,
-          latitude: latitude,
-          properties: feature.properties,
-          id: equipmentId,
-          geometry: feature.geometry
-        });
-      }, 100);
+      // ✅ POPUP IMMÉDIATE À LA POSITION ORIGINALE
+      setPopupInfoEquipment({
+        longitude: longitude,
+        latitude: latitude,
+        properties: feature.properties,
+        id: equipmentId,
+        geometry: feature.geometry
+      });
     }
   };
 
