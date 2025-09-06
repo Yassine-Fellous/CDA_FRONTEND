@@ -39,7 +39,6 @@ export default function MapView() {
   const [showHandicapAccessOnly, setShowHandicapAccessOnly] = useState(false);
   const [showFiltersPopup, setShowFiltersPopup] = useState(false);
   const [showSportsPopup, setShowSportsPopup] = useState(false); // ✅ AJOUTER CETTE LIGNE
-  const [isAnimating, setIsAnimating] = useState(false); // State for animation indicator
 
   const handleSuggestionClick = (suggestion) => {
     console.log('🔍 DEBUG handleSuggestionClick - suggestion:', suggestion);
@@ -107,45 +106,40 @@ export default function MapView() {
       const longitude = feature.geometry.coordinates[0];
       const latitude = feature.geometry.coordinates[1];
       
-      // ✅ CALCULS FIXES SELON LA TAILLE D'ÉCRAN
-      const isMobile = window.innerWidth <= 768;
-      const screenHeight = window.innerHeight;
+      console.log('🎯 Clic sur équipement:', { equipmentId, longitude, latitude });
       
+      // ✅ MARGE ÉNORME POUR DESKTOP
       let offset;
-      if (isMobile) {
-        // Mobile : search bar + popup mobile
-        const searchBarHeight = 60;
-        const popupHeight = 300;
-        const middleSpace = (screenHeight - searchBarHeight - popupHeight) / 2;
-        offset = (middleSpace / screenHeight) * 0.01; // Conversion approximative
+      if (window.innerWidth <= 768) {
+        offset = 0.003; // Mobile : popup en bas, petite marge
+      } else if (window.innerWidth <= 1200) {
+        offset = 0.012; // Tablette : marge importante
       } else {
-        // Desktop : search bar + popup desktop  
-        const searchBarHeight = 80;
-        const popupHeight = 400;
-        const middleSpace = (screenHeight - searchBarHeight - popupHeight) / 2;
-        offset = (middleSpace / screenHeight) * 0.012; // Conversion approximative
+        offset = 0.018; // Desktop : MARGE TRÈS IMPORTANTE
       }
       
-      console.log('🎯 Calcul simplifié:', {
-        isMobile,
-        screenHeight,
-        offset
+      console.log('📱 Device et marge:', { 
+        screenWidth: window.innerWidth, 
+        offset,
+        device: window.innerWidth <= 768 ? 'mobile' : window.innerWidth <= 1200 ? 'tablette' : 'desktop'
       });
       
       setViewState(prevState => ({
         ...prevState,
         longitude: longitude,
-        latitude: latitude + offset,
-        transitionDuration: 400
+        latitude: latitude + offset, // ✅ DÉCALAGE IMPORTANT
+        transitionDuration: 500
       }));
       
       setPopupInfoEquipment({
         longitude: longitude,
-        latitude: latitude,
+        latitude: latitude, // ✅ POPUP À LA POSITION ORIGINALE
         properties: feature.properties,
         id: equipmentId,
         geometry: feature.geometry
       });
+      
+      console.log('✅ Carte recentrée avec marge importante');
     }
   };
 
@@ -798,27 +792,6 @@ export default function MapView() {
           popupInfo={popupInfoEquipment}
           onClose={() => setPopupInfoEquipment(null)}
         />
-
-        {/* Animation Indicator */}
-        {isAnimating && (
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(59, 130, 246, 0.9)',
-            color: 'white',
-            padding: '8px 16px',
-            borderRadius: '20px',
-            fontSize: '14px',
-            fontWeight: '500',
-            zIndex: 50,
-            pointerEvents: 'none',
-            animation: 'pulse 1.5s ease-in-out infinite',
-          }}>
-            🎯 Centrage en cours...
-          </div>
-        )}
       </Map>
     </div>
   );
