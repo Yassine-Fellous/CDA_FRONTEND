@@ -107,18 +107,20 @@ export default function MapView() {
       const longitude = feature.geometry.coordinates[0];
       const latitude = feature.geometry.coordinates[1];
       
-      // ✅ DÉCALAGE SIMPLE VERS LE HAUT SANS ZOOM
+      console.log('🎯 Clic sur équipement:', { equipmentId, longitude, latitude });
+      
+      // ✅ CENTRAGE SANS ZOOM
       const offset = window.innerWidth <= 768 ? 0.0025 : 0.0015;
       
       setViewState(prevState => ({
         ...prevState,
         longitude: longitude,
-        latitude: latitude + offset, // ✅ POINT PLUS HAUT DANS LA VUE
-        // zoom: Math.max(prevState.zoom, 16), // ✅ SUPPRIMER CETTE LIGNE
+        latitude: latitude + offset,
+        // ✅ PAS DE ZOOM ICI
         transitionDuration: 400
       }));
       
-      // ✅ POPUP IMMÉDIATE À LA POSITION ORIGINALE
+      // ✅ POPUP IMMÉDIATE
       setPopupInfoEquipment({
         longitude: longitude,
         latitude: latitude,
@@ -126,6 +128,8 @@ export default function MapView() {
         id: equipmentId,
         geometry: feature.geometry
       });
+      
+      console.log('✅ Centrage terminé sans zoom');
     }
   };
 
