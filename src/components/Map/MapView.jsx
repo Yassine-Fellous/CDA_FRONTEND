@@ -911,6 +911,25 @@ export default function MapView() {
           </Source>
         )}
 
+        {/* ✅ DEBUG TEMPORAIRE */}
+        {styleLoaded && (
+          <div style={{
+            position: 'absolute',
+            bottom: '10px',
+            right: '10px',
+            background: 'rgba(0,0,0,0.7)',
+            color: 'white',
+            padding: '10px',
+            borderRadius: '5px',
+            fontSize: '12px',
+            zIndex: 1000
+          }}>
+            Points: {(filteredEquipments || getFilteredFeatures())?.features?.length || 0}
+            <br />
+            Style: {styleLoaded ? '✅' : '❌'}
+          </div>
+        )}
+
         {/* Map Popup */}
         <MapPopup
           popupInfo={popupInfoEquipment}
