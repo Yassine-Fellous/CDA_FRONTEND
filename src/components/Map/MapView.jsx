@@ -178,8 +178,22 @@ export default function MapView() {
           return false; // Exclure les équipements sans sports valides
         }
         
+        // ✅ UTILISER formatSports MAIS RETOURNER UN ARRAY
         const equipmentSports = formatSports(sportsProperty);
-        return activeFilters.some(filter => equipmentSports.includes(filter));
+        
+        // ✅ VÉRIFIER SI AU MOINS UN FILTRE ACTIF CORRESPOND
+        return activeFilters.some(filter => 
+          equipmentSports.some(sport => 
+            sport.toLowerCase().includes(filter.toLowerCase()) || 
+            filter.toLowerCase().includes(sport.toLowerCase())
+          )
+        );
+      });
+      
+      console.log('🔍 Filtrage par sports:', {
+        'Filtres actifs': activeFilters,
+        'Équipements trouvés': features.length,
+        'Total équipements': equipments.features.length
       });
     }
 
