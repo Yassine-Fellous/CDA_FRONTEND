@@ -105,12 +105,21 @@ const MapPopup = ({ popupInfo, onClose }) => {
             )}
           </div>
           
-          {/* Sports */}
-          {popupInfo.properties.sports && popupInfo.properties.sports !== "" && (
+          {/* Sports with robust check */}
+          {popupInfo.properties.sports && 
+            typeof popupInfo.properties.sports === 'string' && 
+            popupInfo.properties.sports.trim() !== "" && (
             <div>
               <p className='text-sm mb-2 font-semibold text-gray-900'>Sport pratiqué :</p>
               <div className='flex flex-wrap p-2 bg-gray-50 rounded-lg border'>
-                {backgroundStyleSport(popupInfo.properties.sports)}
+                {(() => {
+                  try {
+                    return backgroundStyleSport(popupInfo.properties.sports);
+                  } catch (error) {
+                    console.error('Erreur affichage sports:', error);
+                    return <span className="text-gray-500">Sports non disponibles</span>;
+                  }
+                })()}
               </div>
             </div>
           )}
