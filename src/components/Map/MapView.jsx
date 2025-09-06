@@ -107,35 +107,22 @@ export default function MapView() {
       const longitude = feature.geometry.coordinates[0];
       const latitude = feature.geometry.coordinates[1];
       
-      // ✅ CALCUL DYNAMIQUE DE L'OFFSET SELON L'ÉCRAN
-      const screenWidth = window.innerWidth;
-      const screenHeight = window.innerHeight;
+      console.log('🎯 Clic sur équipement:', { equipmentId, longitude, latitude });
+      
+      // ✅ DÉCALAGE ADAPTATIF SELON LA TAILLE D'ÉCRAN
+      const isMobile = window.innerWidth <= 768;
+      const isTablet = window.innerWidth <= 1024;
       
       let offset;
-      if (screenWidth <= 768) {
-        // Mobile : popup en bas, pas de conflit avec search bar
-        offset = 0.0025;
+      if (isMobile) {
+        offset = 0.0025; // Mobile : petit décalage (popup en bas)
+      } else if (isTablet) {
+        offset = 0.003; // Tablette : décalage moyen
       } else {
-        // Desktop/Tablette : calculer selon la hauteur de la search bar + marge
-        const searchBarHeight = 60; // Hauteur approximative de la search bar
-        const margin = 20; // Marge de sécurité
-        const totalOffset = searchBarHeight + margin;
-        
-        // Convertir les pixels en degrés lat/lng approximatifs
-        const degreesPerPixel = 360 / (screenHeight * Math.cos(latitude * Math.PI / 180));
-        offset = totalOffset * degreesPerPixel;
-        
-        // Limiter l'offset pour éviter un décalage trop important
-        offset = Math.min(offset, 0.006);
-        offset = Math.max(offset, 0.003);
+        offset = 0.004; // Desktop : décalage plus important (éviter la search bar)
       }
       
-      console.log('🎯 Calcul offset:', {
-        screenWidth,
-        screenHeight,
-        latitude,
-        calculatedOffset: offset
-      });
+      console.log('📱 Device type:', { isMobile, isTablet, offset });
       
       setViewState(prevState => ({
         ...prevState,
@@ -144,6 +131,7 @@ export default function MapView() {
         transitionDuration: 400
       }));
       
+      // ✅ POPUP IMMÉDIATE
       setPopupInfoEquipment({
         longitude: longitude,
         latitude: latitude,
@@ -151,6 +139,8 @@ export default function MapView() {
         id: equipmentId,
         geometry: feature.geometry
       });
+      
+      console.log('✅ Centrage terminé sans zoom, offset:', offset);
     }
   };
 
