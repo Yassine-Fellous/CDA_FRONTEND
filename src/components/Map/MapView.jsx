@@ -292,7 +292,7 @@ export default function MapView() {
         'icon-size': [
           'case',
           ['==', ['get', 'id'], selectedId || ''],
-          0.4, // Plus grand quand sélectionné
+          0.3, // ✅ MÊME TAILLE QUE LE PIN ORANGE (était 0.4)
           0.3  // Taille normale
         ]
       }
