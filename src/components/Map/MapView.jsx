@@ -16,6 +16,9 @@ import { LoadingSpinner } from '../LoadingSpinner';
 import SearchBar from './searchBar/SearchBar';
 import { clusterLayer, clusterCountLayer, unclusteredPointLayer, sportIconLayer } from './layers';
 
+// Utils
+import { formatSports } from '@/utils/formatSports'; // ✅ AJOUTER CETTE LIGNE
+
 // Styles
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -116,28 +119,6 @@ export default function MapView() {
     }
   };
 
-  const formatSports = (sports) => {
-    // ✅ VÉRIFICATION ROBUSTE DU TYPE
-    if (!sports || typeof sports !== 'string') {
-      console.warn('formatSports MapView: valeur invalide:', sports, 'Type:', typeof sports);
-      return [];
-    }
-    
-    if (sports.trim() === '') {
-      return [];
-    }
-    
-    const regex = /'([^']*)'|"([^"]*)"/g;
-    const sportsArray = sports.match(regex);
-    
-    if (!sportsArray) {
-      console.warn('formatSports MapView: aucun match pour:', sports);
-      return [];
-    }
-    
-    return sportsArray.map(sport => sport.replace(/['"]+/g, ''));
-  };
-
   const handleSearch = (searchTerm) => {
     if (!searchTerm) {
       setFilteredEquipments(null);
@@ -175,11 +156,17 @@ export default function MapView() {
         const sportsProperty = feature.properties.sports;
         if (!sportsProperty || typeof sportsProperty !== 'string') {
           console.warn('getFilteredFeatures: propriété sports invalide:', sportsProperty);
-          return false; // Exclure les équipements sans sports valides
+          return false;
         }
         
-        // ✅ UTILISER formatSports MAIS RETOURNER UN ARRAY
-        const equipmentSports = formatSports(sportsProperty);
+        // ✅ UTILISER formatSports DES UTILS
+        const formattedSports = formatSports(sportsProperty);
+        if (formattedSports === 'Non spécifié') {
+          return false;
+        }
+        
+        // Convertir en array pour la comparaison
+        const equipmentSports = formattedSports.split(', ').map(s => s.trim());
         
         // ✅ VÉRIFIER SI AU MOINS UN FILTRE ACTIF CORRESPOND
         return activeFilters.some(filter => 
@@ -192,7 +179,7 @@ export default function MapView() {
       
       console.log('🔍 Filtrage par sports:', {
         'Filtres actifs': activeFilters,
-        'Équipements trouvés': features.length,
+        'Équipements filtrés': features.length,
         'Total équipements': equipments.features.length
       });
     }
