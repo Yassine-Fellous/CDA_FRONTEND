@@ -97,6 +97,25 @@ export default function MapView() {
     }
   }, [sportParam, sports, equipments, searchParams]);
 
+  // Ligne ~60-70, ajouter l'useEffect pour Escape :
+  useEffect(() => {
+    // ✅ FERMER LES POPUPS AVEC LA TOUCHE ESCAPE
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        setShowFiltersPopup(false);
+        setShowSportsPopup(false);
+        setPopupInfoEquipment(null);
+        setShowMenu(false); // ✅ FERMER LE MENU AUSSI
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, []);
+
   if (errorEquipments) {
     return <div>Error loading map data</div>;
   }
@@ -387,7 +406,7 @@ export default function MapView() {
       if (!map.hasImage('map-pin-green')) {
         const canvas3 = document.createElement('canvas');
         const ctx3 = canvas3.getContext('2d');
-        canvas3.width = 30;
+        ctx3.width = 30;
         ctx3.height = 30; // ✅ CORRIGER: était ctx3.height = 30
         ctx3.beginPath();
         ctx3.arc(15, 15, 12, 0, 2 * Math.PI);
@@ -894,7 +913,7 @@ export default function MapView() {
           position: 'absolute', 
           top: '80px', // ✅ PLUS BAS POUR ÉVITER LES BOUTONS
           left: '20px',
-          right: '20px',
+          right: '20px', // ✅ ESPACE POUR LES BOUTONS À DROITE
           zIndex: 48 // ✅ EN DESSOUS DES BOUTONS
         }}>
           <SearchBar
