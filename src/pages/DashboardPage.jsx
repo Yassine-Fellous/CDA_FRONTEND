@@ -62,20 +62,6 @@ const DashboardPage = () => {
               Découvrez les installations sportives près de chez vous
             </p>
           </Link>
-
-          {/* Reports Card */}
-          <Link to="/report" className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center">
-              <AlertTriangle className="w-8 h-8 text-red-500" />
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">Signalements</h3>
-                <p className="text-sm text-gray-500">Signaler un problème</p>
-              </div>
-            </div>
-            <p className="mt-4 text-sm text-gray-600">
-              Aidez à améliorer les installations en signalant les problèmes
-            </p>
-          </Link>
         </div>
       </div>
     </div>
