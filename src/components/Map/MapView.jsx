@@ -860,7 +860,7 @@ export default function MapView() {
                       </span>
                     </div>
                     <button
-                      onClick={() => handleRemoveFilter(filter)}
+                      onClick={() => handleRemoveFilter(filter)}/* changement de logique de filtrage*/
                       style={{
                         backgroundColor: '#ef4444',
                         color: 'white',
