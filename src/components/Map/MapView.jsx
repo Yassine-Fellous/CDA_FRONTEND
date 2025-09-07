@@ -44,23 +44,24 @@ export default function MapView() {
   const [showNavigation, setShowNavigation] = useState(false); // ✅ NOUVEAU STATE POUR LA NAVIGATION
 
   const handleSuggestionClick = (suggestion) => {
-    console.log('🔍 DEBUG handleSuggestionClick - suggestion:', suggestion);
-    console.log('🔍 DEBUG handleSuggestionClick - typeof suggestion:', typeof suggestion);
-    console.log('🔍 DEBUG handleSuggestionClick - activeFilters avant:', activeFilters);
+    console.log('🔍 Ajout du sport:', suggestion);
     
-    // ✅ FERMER LES POPUPS ET LA NAVIGATION QUAND ON SÉLECTIONNE UN SPORT
     setShowFiltersPopup(false);
     setShowSportsPopup(false);
     setPopupInfoEquipment(null);
-    setShowNavigation(false); // ✅ AJOUTER CETTE LIGNE
+    setShowNavigation(false);
     
-    // Add the selected suggestion to active filters
     if (!activeFilters.includes(suggestion)) {
       const newFilters = [...activeFilters, suggestion];
-      console.log('🔍 DEBUG handleSuggestionClick - nouveaux filtres:', newFilters);
       setActiveFilters(newFilters);
+      
+      // ✅ METTRE À JOUR L'URL AVEC TOUS LES SPORTS
+      const [searchParams, setSearchParams] = useSearchParams();
+      searchParams.set('sports', newFilters.join(','));
+      setSearchParams(searchParams, { replace: true });
+      console.log('🔗 Sports dans l\'URL:', newFilters);
     }
-    // Clear suggestions
+    
     setSearchSuggestions([]);
   };
 
@@ -223,8 +224,25 @@ export default function MapView() {
   };
 
   const handleRemoveFilter = (filterToRemove) => {
-    // Remove the filter from active filters
-    setActiveFilters(activeFilters.filter(filter => filter !== filterToRemove));
+    console.log('🗑️ Suppression du filtre:', filterToRemove);
+    
+    const newFilters = activeFilters.filter(filter => filter !== filterToRemove);
+    setActiveFilters(newFilters);
+    
+    // ✅ METTRE À JOUR L'URL AVEC TOUS LES SPORTS RESTANTS
+    const [searchParams, setSearchParams] = useSearchParams();
+    
+    if (newFilters.length > 0) {
+      // S'il reste des filtres, mettre à jour l'URL
+      searchParams.set('sports', newFilters.join(','));
+    } else {
+      // S'il n'y a plus de filtres, supprimer le paramètre
+      searchParams.delete('sports');
+      searchParams.delete('sport'); // Nettoyer aussi l'ancien paramètre
+    }
+    
+    setSearchParams(searchParams, { replace: true });
+    console.log('🔗 URL mise à jour, sports restants:', newFilters);
   };
 
   const getFilteredFeatures = () => {
