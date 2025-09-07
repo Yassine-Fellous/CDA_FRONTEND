@@ -412,77 +412,109 @@ export default function MapView() {
       margin: 0,
       padding: 0
     }}>
-      {/* Top Right Controls */}
+      {/* Top Controls */}
       <div style={{
         position: 'absolute',
         top: '20px',
-        right: '10px',
+        left: '20px',
+        right: '20px',
         display: 'flex',
-        gap: '8px',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
         zIndex: 49,
       }}>
-        {/* Sports Button */}
-        <div 
-          style={{
-            backgroundColor: activeFilters.length > 0 ? '#3b82f6' : 'white',
-            color: activeFilters.length > 0 ? 'white' : 'black',
-            padding: '8px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            cursor: 'pointer',
-            position: 'relative',
-            transition: 'all 0.2s ease',
-          }}
-          onClick={() => {
-            // ✅ FERMER LES AUTRES POPUPS
-            setShowFiltersPopup(false);
-            setPopupInfoEquipment(null);
-            // ✅ TOGGLE LE POPUP SPORTS
-            setShowSportsPopup(!showSportsPopup);
-          }}
+        {/* Menu Button à gauche */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '8px',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+        onClick={() => {
+          // ✅ NAVIGUER VERS L'ACCUEIL
+          window.location.href = '/';
+        }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontSize: '20px' }}>⚽</span>
-            {activeFilters.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '-8px',
-                right: '-8px',
-                backgroundColor: '#ef4444',
-                color: 'white',
-                borderRadius: '50%',
-                width: '20px',
-                height: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-                fontWeight: 'bold',
-              }}>
-                {activeFilters.length}
-              </div>
-            )}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+          }}>
+            <div style={{ width: '20px', height: '3px', backgroundColor: '#000', borderRadius: '1px' }}></div>
+            <div style={{ width: '20px', height: '3px', backgroundColor: '#000', borderRadius: '1px' }}></div>
+            <div style={{ width: '20px', height: '3px', backgroundColor: '#000', borderRadius: '1px' }}></div>
           </div>
+          <span style={{ fontSize: '14px', fontWeight: '600', color: '#000' }}>Menu</span>
         </div>
 
-        {/* Filter Button */}
-        <div 
-          style={{
-            backgroundColor: 'white',
-            padding: '8px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            cursor: 'pointer',
-          }}
-          onClick={() => {
-            // ✅ FERMER LES AUTRES POPUPS
-            setShowSportsPopup(false);
-            setPopupInfoEquipment(null);
-            // ✅ OUVRIR LE POPUP FILTRES
-            setShowFiltersPopup(true);
-          }}
-        >
-          <Filter size={24} color="black" />
+        {/* Boutons de droite */}
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+        }}>
+          {/* Sports Button */}
+          <div 
+            style={{
+              backgroundColor: activeFilters.length > 0 ? '#3b82f6' : 'white',
+              color: activeFilters.length > 0 ? 'white' : 'black',
+              padding: '8px',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              cursor: 'pointer',
+              position: 'relative',
+              transition: 'all 0.2s ease',
+            }}
+            onClick={() => {
+              setShowFiltersPopup(false);
+              setPopupInfoEquipment(null);
+              setShowSportsPopup(!showSportsPopup);
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '20px' }}>⚽</span>
+              {activeFilters.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-8px',
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}>
+                  {activeFilters.length}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Filter Button */}
+          <div 
+            style={{
+              backgroundColor: 'white',
+              padding: '8px',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              cursor: 'pointer',
+            }}
+            onClick={() => {
+              setShowSportsPopup(false);
+              setPopupInfoEquipment(null);
+              setShowFiltersPopup(true);
+            }}
+          >
+            <Filter size={24} color="black" />
+          </div>
         </div>
       </div>
 
@@ -852,14 +884,13 @@ export default function MapView() {
         onLoad={onMapLoad}
         onError={(e) => console.error('Map style loading error:', e)}
       >
-        {/* SearchBar Component with adjusted style */}
+        {/* SearchBar Component repositionnée */}
         <div style={{ 
           position: 'absolute', 
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 'calc(100% - 120px)', // Adjust width to leave space for filter button
-          zIndex: 49 
+          top: '80px', // ✅ PLUS BAS POUR ÉVITER LES BOUTONS
+          left: '20px',
+          right: '20px',
+          zIndex: 48 // ✅ EN DESSOUS DES BOUTONS
         }}>
           <SearchBar
             onSearch={handleSearch}

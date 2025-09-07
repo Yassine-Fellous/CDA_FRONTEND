@@ -34,12 +34,12 @@ export default function App() {
       <BrowserRouter>
         <ScrollToTop />
         <Routes>
-          {/* Route spéciale pour la carte sans footer */}
+          {/* Route spéciale pour la carte SANS navigation */}
           <Route 
             path={ROUTES.MAP} 
             element={
               <div style={{ height: '100vh', overflow: 'hidden' }}>
-                <Navigation />
+                {/* ✅ SUPPRIMER LA NAVIGATION SUR LA PAGE CARTE */}
                 <MapView />
               </div>
             } 
