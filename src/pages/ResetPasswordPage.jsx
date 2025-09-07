@@ -31,15 +31,19 @@ const ResetPasswordPage = () => {
 
   const verifyResetToken = async () => {
     try {
-      const response = await fetch('/api/auth/verify-reset-token/', {
-        method: 'POST',
+      // ✅ UTILISER L'URL COMPLÈTE DU BACKEND
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cdabackend-production-3c8a.up.railway.app';
+      
+      const response = await fetch(`${API_BASE_URL}/auth/validate-reset-token/?token=${token}`, {
+        method: 'GET', // ✅ CHANGER EN GET POUR CORRESPONDRE AU BACKEND
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token }),
       });
 
-      setIsValidToken(response.ok);
+      const data = await response.json();
+      setIsValidToken(data.valid || false);
+      
     } catch (error) {
       console.error('Erreur vérification token:', error);
       setIsValidToken(false);
@@ -87,20 +91,23 @@ const ResetPasswordPage = () => {
     setErrors({});
 
     try {
-      const response = await fetch('/api/auth/reset-password/', {
+      // ✅ UTILISER L'URL COMPLÈTE DU BACKEND
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cdabackend-production-3c8a.up.railway.app';
+      
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           token,
-          password: formData.password,
+          password: formData.password, // ✅ UTILISER 'password' POUR CORRESPONDRE AU BACKEND
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur lors de la réinitialisation');
+        throw new Error(errorData.error || 'Erreur lors de la réinitialisation');
       }
 
       setIsSuccess(true);
