@@ -39,6 +39,7 @@ export default function MapView() {
   const [showHandicapAccessOnly, setShowHandicapAccessOnly] = useState(false);
   const [showFiltersPopup, setShowFiltersPopup] = useState(false);
   const [showSportsPopup, setShowSportsPopup] = useState(false); // ✅ AJOUTER CETTE LIGNE
+  const [showMenu, setShowMenu] = useState(false); // ✅ AJOUTER LE STATE MENU
 
   const handleSuggestionClick = (suggestion) => {
     console.log('🔍 DEBUG handleSuggestionClick - suggestion:', suggestion);
@@ -169,6 +170,7 @@ export default function MapView() {
       setShowFiltersPopup(false);
       setShowSportsPopup(false);
       setPopupInfoEquipment(null);
+      setShowMenu(false); // ✅ FERMER LE MENU AUSSI
     }
   };
 
@@ -435,8 +437,11 @@ export default function MapView() {
           gap: '8px',
         }}
         onClick={() => {
-          // ✅ NAVIGUER VERS L'ACCUEIL
-          window.location.href = '/';
+          // ✅ FERMER LES AUTRES POPUPS ET TOGGLE LE MENU
+          setShowFiltersPopup(false);
+          setShowSportsPopup(false);
+          setPopupInfoEquipment(null);
+          setShowMenu(!showMenu);
         }}
         >
           <div style={{
