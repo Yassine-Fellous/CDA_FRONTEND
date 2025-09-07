@@ -441,11 +441,12 @@ export default function MapView() {
       {/* Top Controls - TOUS À DROITE */}
       <div style={{
         position: 'absolute',
-        top: '20px',
-        right: '20px', // ✅ SEULEMENT À DROITE
+        top: showNavigation ? '100px' : '20px', // ✅ AJUSTER SELON LA HAUTEUR NAVIGATION
+        right: '20px',
         display: 'flex',
         gap: '8px',
         zIndex: 49,
+        transition: 'top 0.3s ease', // ✅ ANIMATION PLUS FLUIDE
       }}>
         {/* Sports Button */}
         <div 
@@ -530,7 +531,7 @@ export default function MapView() {
           setShowFiltersPopup(false);
           setShowSportsPopup(false);
           setPopupInfoEquipment(null);
-          setShowMenu(false); // ✅ GARDER showMenu À FALSE
+          setShowMenu(false);
           setShowNavigation(!showNavigation); // ✅ TOGGLE LA NAVIGATION
           console.log('🔍 Nouveau état navigation:', !showNavigation);
         }}
