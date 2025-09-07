@@ -234,6 +234,8 @@ class AuthService {
     }
 
     try {
+      console.log('📤 Envoi vers:', `${API_BASE_URL}/auth/request-password-reset/`);
+      
       const response = await fetch(`${API_BASE_URL}/auth/request-password-reset/`, {
         method: 'POST',
         headers: {
@@ -242,19 +244,42 @@ class AuthService {
         body: JSON.stringify({ email: email.trim() }),
       });
 
+      console.log('📥 Réponse status:', response.status);
+      console.log('📥 Content-Type:', response.headers.get('content-type'));
+
       if (!response.ok) {
-        const errorData = await response.json();
+        // ✅ VÉRIFIER LE CONTENT-TYPE AVANT DE PARSER
+        const contentType = response.headers.get('content-type');
         
-        if (response.status === 404) {
-          // Ne pas révéler si l'email existe ou non pour la sécurité
-          return { message: 'Si cette adresse email existe, vous recevrez un lien de réinitialisation.' };
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          
+          if (response.status === 404) {
+            // Ne pas révéler si l'email existe ou non pour la sécurité
+            return { message: 'Si cette adresse email existe, vous recevrez un lien de réinitialisation.' };
+          }
+          
+          throw new Error(errorData.error || 'Erreur lors de la demande');
+        } else {
+          // Réponse non-JSON
+          const textResponse = await response.text();
+          console.error('❌ Réponse non-JSON:', textResponse);
+          throw new Error(`Erreur serveur ${response.status}`);
         }
-        
-        throw new Error(errorData.error || 'Erreur lors de la demande');
       }
 
-      const data = await response.json();
-      return { message: data.message || 'Lien de réinitialisation envoyé' };
+      // ✅ VÉRIFIER LE CONTENT-TYPE POUR LA RÉPONSE DE SUCCÈS
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        console.log('✅ Réponse reçue:', data);
+        return { message: data.message || 'Lien de réinitialisation envoyé' };
+      } else {
+        // Si pas de JSON, on assume que c'est un succès
+        return { message: 'Lien de réinitialisation envoyé' };
+      }
+
     } catch (error) {
       console.error('❌ Erreur mot de passe oublié:', error);
       throw error;

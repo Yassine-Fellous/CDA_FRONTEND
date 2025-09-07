@@ -18,7 +18,6 @@ const ForgotPasswordPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
     if (!email.trim()) {
       setError('Veuillez saisir votre adresse email');
       return;
@@ -33,8 +32,10 @@ const ForgotPasswordPage = () => {
     setError('');
 
     try {
-      // Appel API pour demander la réinitialisation
-      const response = await fetch('/api/auth/forgot-password/', {
+      // ✅ CORRIGER L'URL - UTILISER L'API BACKEND RÉELLE
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cdabackend-production-3c8a.up.railway.app';
+      
+      const response = await fetch(`${API_BASE_URL}/auth/request-password-reset/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,16 +43,37 @@ const ForgotPasswordPage = () => {
         body: JSON.stringify({ email: email.trim() }),
       });
 
+      console.log('📥 Réponse status:', response.status);
+      console.log('📥 Content-Type:', response.headers.get('content-type'));
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Une erreur est survenue');
+        // ✅ VÉRIFIER LE CONTENT-TYPE AVANT DE PARSER
+        const contentType = response.headers.get('content-type');
+        
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Une erreur est survenue');
+        } else {
+          // Réponse non-JSON (HTML, text, etc.)
+          const textResponse = await response.text();
+          console.error('❌ Réponse non-JSON:', textResponse);
+          throw new Error(`Erreur serveur ${response.status}`);
+        }
+      }
+
+      // ✅ VÉRIFIER LE CONTENT-TYPE POUR LA RÉPONSE DE SUCCÈS AUSSI
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        console.log('✅ Réponse reçue:', data);
       }
 
       // Succès
       setIsSuccess(true);
       
     } catch (err) {
-      console.error('Erreur mot de passe oublié:', err);
+      console.error('❌ Erreur mot de passe oublié:', err);
       setError(err.message || 'Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsSubmitting(false);
