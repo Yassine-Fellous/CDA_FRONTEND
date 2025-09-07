@@ -195,31 +195,44 @@ class AuthService {
       return { message: 'Code renvoyé avec succès' };
     }
 
-    // Pour l'instant, on utilise le même endpoint que register
-    // Vous pourriez vouloir créer un endpoint dédié au renvoi
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register/`, {
+      console.log('📤 Renvoi code vers:', `${API_BASE_URL}/auth/resend-verification-code/`);
+      
+      const response = await fetch(`${API_BASE_URL}/auth/resend-verification-code/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          email: email.trim(),
-          password: 'temp_password' // Pas idéal, voir note ci-dessous
+          email: email.trim()
         }),
       });
 
-      if (response.status === 409) {
-        // Email déjà utilisé = compte existe, c'est normal pour un renvoi
+      console.log('📥 Renvoi code status:', response.status);
+
+      if (!response.ok) {
+        let errorMessage;
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || 'Erreur lors du renvoi du code';
+        } catch {
+          errorMessage = `Erreur serveur ${response.status}`;
+        }
+        
+        console.error('❌ Erreur renvoi code:', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // ✅ SUCCÈS - PARSER LA RÉPONSE
+      try {
+        const data = await response.json();
+        console.log('✅ Code renvoyé avec succès:', data);
+        return { message: data.message || 'Code renvoyé avec succès' };
+      } catch {
         return { message: 'Code renvoyé avec succès' };
       }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erreur lors du renvoi du code');
-      }
-
-      return { message: 'Code renvoyé avec succès' };
     } catch (error) {
       console.error('❌ Erreur renvoi code:', error);
       throw error;
