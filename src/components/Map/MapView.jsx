@@ -404,7 +404,14 @@ export default function MapView() {
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div style={{ 
+      position: 'relative', 
+      width: '100vw', 
+      height: '100vh',
+      overflow: 'hidden', // ✅ EMPÊCHER LE SCROLL
+      margin: 0,
+      padding: 0
+    }}>
       {/* Top Right Controls */}
       <div style={{
         position: 'absolute',
@@ -831,9 +838,10 @@ export default function MapView() {
         style={{ 
           width: '100vw', 
           height: '100vh',
-          // ✅ SUPPRIMER LA MARGE - PAS DE DÉCALAGE
-          // marginLeft: (window.innerWidth >= 1024 && popupInfoEquipment) ? '400px' : '0',
-          // transition: 'margin-left 0.3s ease'
+          position: 'fixed', // ✅ FIXER LA CARTE
+          top: 0,
+          left: 0,
+          zIndex: 1
         }}
         {...viewState}
         onMove={evt => setViewState(evt.viewState)}
