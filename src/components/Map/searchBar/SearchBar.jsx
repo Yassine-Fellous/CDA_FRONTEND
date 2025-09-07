@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Search } from 'lucide-react'; // ✅ AJOUTER L'IMPORT
 
 const SearchBar = ({ onSearch, suggestions, onSuggestionClick }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,6 +24,16 @@ const SearchBar = ({ onSearch, suggestions, onSuggestionClick }) => {
         onChange={handleInputChange}
         style={styles.searchInput}
       />
+      
+      {/* ✅ AJOUTER L'ICÔNE LOUPE À DROITE */}
+      <Search 
+        size={20} 
+        style={{
+          color: '#6b7280',
+          marginLeft: '8px',
+          flexShrink: 0,
+        }} 
+      />
 
       {/* Suggestions Container */}
       {suggestions.length > 0 && (
@@ -42,7 +53,7 @@ const SearchBar = ({ onSearch, suggestions, onSuggestionClick }) => {
   );
 };
 
-// Styles
+// ✅ GARDER LES STYLES EXISTANTS (pas de modification)
 const styles = {
   searchBarContainer: {
     position: 'absolute',
@@ -67,7 +78,7 @@ const styles = {
     fontSize: '16px',
     color: '#6b7280',
     backgroundColor: 'transparent',
-    width: '100%', // ✅ L'input prend toute la largeur disponible fix search bar
+    width: '100%',
   },
   suggestionsContainer: {
     position: 'absolute',
