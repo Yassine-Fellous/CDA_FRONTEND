@@ -48,10 +48,11 @@ export default function MapView() {
     console.log('🔍 DEBUG handleSuggestionClick - typeof suggestion:', typeof suggestion);
     console.log('🔍 DEBUG handleSuggestionClick - activeFilters avant:', activeFilters);
     
-    // ✅ FERMER LES POPUPS QUAND ON SÉLECTIONNE UN SPORT
+    // ✅ FERMER LES POPUPS ET LA NAVIGATION QUAND ON SÉLECTIONNE UN SPORT
     setShowFiltersPopup(false);
     setShowSportsPopup(false);
     setPopupInfoEquipment(null);
+    setShowNavigation(false); // ✅ AJOUTER CETTE LIGNE
     
     // Add the selected suggestion to active filters
     if (!activeFilters.includes(suggestion)) {
@@ -136,9 +137,10 @@ export default function MapView() {
       
       console.log('🎯 Clic équipement:', { equipmentId, longitude, latitude });
       
-      // ✅ FERMER LES AUTRES POPUPS AVANT D'OUVRIR LE POPUP ÉQUIPEMENT
+      // ✅ FERMER TOUS LES POPUPS ET LA NAVIGATION AVANT D'OUVRIR LE POPUP ÉQUIPEMENT
       setShowFiltersPopup(false);
       setShowSportsPopup(false);
+      setShowNavigation(false); // ✅ AJOUTER CETTE LIGNE
       
       // ✅ DÉTECTER SI ON EST SUR DESKTOP
       const isDesktop = window.innerWidth >= 1024;
@@ -193,7 +195,7 @@ export default function MapView() {
       setShowSportsPopup(false);
       setPopupInfoEquipment(null);
       setShowMenu(false);
-      setShowNavigation(false); // ✅ FERMER LA NAVIGATION AUSSI
+      setShowNavigation(false); // ✅ DÉJÀ PRÉSENT
       console.log('🔍 Navigation fermée via clic carte');
     }
   };
@@ -506,7 +508,7 @@ export default function MapView() {
             setPopupInfoEquipment(null);
             setShowMenu(false);
             setShowNavigation(false); // ✅ FERMER LA NAVIGATION
-            setShowFiltersPopup(true);
+            setShowFiltersPopup(!showFiltersPopup); // ✅ TOGGLE AU LIEU DE TRUE
           }}
         >
           <Filter size={24} color="black" />
