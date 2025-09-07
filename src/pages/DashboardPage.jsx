@@ -46,9 +46,6 @@ const DashboardPage = () => {
               <p className="text-sm text-gray-600">
                 <strong>Email:</strong> {user?.email}
               </p>
-              <p className="text-sm text-gray-600 mt-1">
-                <strong>Nom d'utilisateur:</strong> {user?.username}
-              </p>
             </div>
           </div>
 
