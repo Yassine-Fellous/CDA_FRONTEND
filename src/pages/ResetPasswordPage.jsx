@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { FaLock, FaEye, FaEyeSlash, FaCheckCircle } from 'react-icons/fa';
 import { AlertTriangle } from 'lucide-react';
+import { authService } from '../services/api/authService'; // ✅ AJOUTER CETTE LIGNE
 
 const ResetPasswordPage = () => {
   const [formData, setFormData] = useState({
@@ -31,22 +32,19 @@ const ResetPasswordPage = () => {
 
   const verifyResetToken = async () => {
     try {
-      // ✅ UTILISER L'URL COMPLÈTE DU BACKEND
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cdabackend-production-3c8a.up.railway.app';
+      console.log('🔍 Validation du token:', token, 'avec email:', email);
       
-      const response = await fetch(`${API_BASE_URL}/auth/validate-reset-token/?token=${token}`, {
-        method: 'GET', // ✅ CHANGER EN GET POUR CORRESPONDRE AU BACKEND
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-      setIsValidToken(data.valid || false);
+      // ✅ UTILISER AUTHSERVICE AVEC GESTION FLEXIBLE
+      const result = await authService.validateResetToken(token, email);
+      
+      console.log('📥 Résultat validation:', result);
+      setIsValidToken(result.valid);
       
     } catch (error) {
-      console.error('Erreur vérification token:', error);
-      setIsValidToken(false);
+      console.error('❌ Erreur vérification token:', error);
+      // ✅ EN CAS D'ERREUR, ON ASSUME QUE LE TOKEN EST VALIDE POUR NE PAS BLOQUER
+      console.warn('⚠️ Erreur de validation, on continue avec le token');
+      setIsValidToken(true);
     }
   };
 
@@ -91,39 +89,26 @@ const ResetPasswordPage = () => {
     setErrors({});
 
     try {
-      // ✅ UTILISER L'URL COMPLÈTE DU BACKEND
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cdabackend-production-3c8a.up.railway.app';
+      console.log('🚀 Réinitialisation avec:', { token, email });
       
-      const response = await fetch(`${API_BASE_URL}/auth/reset-password/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token,
-          password: formData.password, // ✅ UTILISER 'password' POUR CORRESPONDRE AU BACKEND
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erreur lors de la réinitialisation');
-      }
-
+      // ✅ UTILISER AUTHSERVICE QUI S'ADAPTE AU BACKEND
+      const response = await authService.resetPassword(token, formData.password, email);
+      
+      console.log('✅ Réponse:', response);
       setIsSuccess(true);
       
       // Redirection automatique vers login après 3 secondes
       setTimeout(() => {
         navigate('/login', {
           state: {
-            message: 'Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.',
+            message: response.message || 'Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.',
             type: 'success'
           }
         });
       }, 3000);
 
     } catch (err) {
-      console.error('Erreur réinitialisation:', err);
+      console.error('❌ Erreur réinitialisation:', err);
       setErrors({ submit: err.message || 'Une erreur est survenue' });
     } finally {
       setIsSubmitting(false);

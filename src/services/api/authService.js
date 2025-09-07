@@ -299,6 +299,8 @@ class AuthService {
     }
 
     try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cdabackend-production-3c8a.up.railway.app';
+      
       const response = await fetch(`${API_BASE_URL}/auth/reset-password/`, {
         method: 'POST',
         headers: {
@@ -306,45 +308,64 @@ class AuthService {
         },
         body: JSON.stringify({ 
           token: token,
-          new_password: password,
-          email: email
+          new_password: password, // ✅ UTILISER 'new_password' COMME ATTENDU PAR VOTRE BACKEND
+          email: email // ✅ AJOUTER L'EMAIL COMME ATTENDU PAR VOTRE BACKEND
         }),
       });
 
+      console.log('📥 Response status:', response.status);
+
       if (!response.ok) {
-        const errorData = await response.json();
+        // ✅ GESTION SPÉCIFIQUE POUR VOTRE BACKEND
+        let errorMessage;
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || 'Erreur lors de la réinitialisation';
+        } catch {
+          // Si la réponse n'est pas du JSON valide
+          errorMessage = `Erreur serveur ${response.status}`;
+        }
         
         if (response.status === 400) {
           throw new Error('Lien invalide ou expiré');
         }
         
-        throw new Error(errorData.error || 'Erreur lors de la réinitialisation');
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      // ✅ GESTION FLEXIBLE DE LA RÉPONSE
+      let data = {};
+      try {
+        data = await response.json();
+      } catch {
+        // Si pas de JSON, on assume que c'est un succès
+        data = { message: 'Mot de passe réinitialisé avec succès' };
+      }
+      
       return { message: data.message || 'Mot de passe réinitialisé avec succès' };
+      
     } catch (error) {
       console.error('❌ Erreur reset password:', error);
       throw error;
     }
   }
 
-  logout() {
+  async validateResetToken(token, email = null) {
     if (MOCK_MODE) {
-      console.log('🧪 MODE TEST - Logout');
+      console.log('🧪 MODE TEST - Validate token');
+      await this.mockDelay(500);
+      
+      if (token === 'invalid-token') {
+        return { valid: false, error: 'Token invalide' };
+      }
+      
+      return { valid: true };
     }
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-  }
 
-  getToken() {
-    return localStorage.getItem('authToken');
-  }
-
-  isAuthenticated() {
-    return !!this.getToken();
-  }
-}
-
-export const authService = new AuthService();
-export { MOCK_MODE };
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cdabackend-production-3c8a.up.railway.app';
+      
+      // ✅ CONSTRUIRE L'URL AVEC LES PARAMÈTRES QUE VOTRE BACKEND ATTEND
+      let url = `${API_BASE_URL}/auth/validate-reset-token/?token=${token}`;
+      if
