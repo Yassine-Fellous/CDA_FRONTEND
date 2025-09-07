@@ -144,7 +144,7 @@ class AuthService {
 
     // Appel API réel
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/verify/`, {
+      const response = await fetch(`${API_BASE_URL}/auth/verify-code/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
