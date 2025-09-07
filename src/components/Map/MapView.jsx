@@ -190,6 +190,7 @@ export default function MapView() {
       setShowSportsPopup(false);
       setPopupInfoEquipment(null);
       setShowMenu(false); // ✅ FERMER LE MENU AUSSI
+      console.log('🔍 Menu fermé via clic carte'); // ✅ DEBUG
     }
   };
 
@@ -433,18 +434,78 @@ export default function MapView() {
       margin: 0,
       padding: 0
     }}>
-      {/* Top Controls */}
+      {/* Top Controls - TOUS À DROITE */}
       <div style={{
         position: 'absolute',
         top: '20px',
-        left: '20px',
-        right: '20px',
+        right: '20px', // ✅ SEULEMENT À DROITE
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        gap: '8px',
         zIndex: 49,
       }}>
-        {/* Menu Button à gauche */}
+        {/* Sports Button */}
+        <div 
+          style={{
+            backgroundColor: activeFilters.length > 0 ? '#3b82f6' : 'white',
+            color: activeFilters.length > 0 ? 'white' : 'black',
+            padding: '8px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            cursor: 'pointer',
+            position: 'relative',
+            transition: 'all 0.2s ease',
+          }}
+          onClick={() => {
+            setShowFiltersPopup(false);
+            setPopupInfoEquipment(null);
+            setShowMenu(false); // ✅ FERMER LE MENU
+            setShowSportsPopup(!showSportsPopup);
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '20px' }}>⚽</span>
+            {activeFilters.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-8px',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                borderRadius: '50%',
+                width: '20px',
+                height: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 'bold',
+              }}>
+                {activeFilters.length}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Filter Button */}
+        <div 
+          style={{
+            backgroundColor: 'white',
+            padding: '8px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            cursor: 'pointer',
+          }}
+          onClick={() => {
+            setShowSportsPopup(false);
+            setPopupInfoEquipment(null);
+            setShowMenu(false); // ✅ FERMER LE MENU
+            setShowFiltersPopup(true);
+          }}
+        >
+          <Filter size={24} color="black" />
+        </div>
+
+        {/* Menu Button - MAINTENANT À DROITE */}
         <div style={{
           backgroundColor: 'white',
           padding: '8px',
@@ -454,13 +515,17 @@ export default function MapView() {
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
+          position: 'relative', // ✅ POUR LE DROPDOWN
         }}
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation(); // ✅ EMPÊCHER LA PROPAGATION
+          console.log('🔍 Clic sur menu, état actuel:', showMenu); // ✅ DEBUG
           // ✅ FERMER LES AUTRES POPUPS ET TOGGLE LE MENU
           setShowFiltersPopup(false);
           setShowSportsPopup(false);
           setPopupInfoEquipment(null);
           setShowMenu(!showMenu);
+          console.log('🔍 Nouveau état menu:', !showMenu); // ✅ DEBUG
         }}
         >
           <div style={{
@@ -473,72 +538,6 @@ export default function MapView() {
             <div style={{ width: '20px', height: '3px', backgroundColor: '#000', borderRadius: '1px' }}></div>
           </div>
           <span style={{ fontSize: '14px', fontWeight: '600', color: '#000' }}>Menu</span>
-        </div>
-
-        {/* Boutons de droite */}
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-        }}>
-          {/* Sports Button */}
-          <div 
-            style={{
-              backgroundColor: activeFilters.length > 0 ? '#3b82f6' : 'white',
-              color: activeFilters.length > 0 ? 'white' : 'black',
-              padding: '8px',
-              borderRadius: '8px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              cursor: 'pointer',
-              position: 'relative',
-              transition: 'all 0.2s ease',
-            }}
-            onClick={() => {
-              setShowFiltersPopup(false);
-              setPopupInfoEquipment(null);
-              setShowSportsPopup(!showSportsPopup);
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ fontSize: '20px' }}>⚽</span>
-              {activeFilters.length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: '-8px',
-                  right: '-8px',
-                  backgroundColor: '#ef4444',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '20px',
-                  height: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                }}>
-                  {activeFilters.length}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Filter Button */}
-          <div 
-            style={{
-              backgroundColor: 'white',
-              padding: '8px',
-              borderRadius: '8px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              cursor: 'pointer',
-            }}
-            onClick={() => {
-              setShowSportsPopup(false);
-              setPopupInfoEquipment(null);
-              setShowFiltersPopup(true);
-            }}
-          >
-            <Filter size={24} color="black" />
-          </div>
         </div>
       </div>
 
@@ -887,6 +886,99 @@ export default function MapView() {
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Menu Dropdown */}
+      {showMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '80px', // Sous les boutons
+            right: '20px', // Aligné à droite
+            width: '250px',
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            zIndex: 50, // Au-dessus des autres éléments
+            border: '1px solid #e5e7eb',
+            overflow: 'hidden',
+          }}
+          onClick={(e) => e.stopPropagation()} // ✅ EMPÊCHER LA FERMETURE
+        >
+          {/* Header */}
+          <div style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid #f3f4f6',
+            backgroundColor: '#f8fafc',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <h3 style={{ margin: 0, fontWeight: '600', color: '#000', fontSize: '16px' }}>
+              Navigation
+            </h3>
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // ✅ EMPÊCHER LA PROPAGATION
+                setShowMenu(false);
+                console.log('🔍 Menu fermé via bouton X'); // ✅ DEBUG
+              }}
+              style={{
+                background: 'none',
+                border: '1px solid #000',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                fontSize: '18px',
+                cursor: 'pointer',
+                color: '#000',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Menu Items */}
+          <div style={{ padding: '8px 0' }}>
+            {[
+              { href: '/', icon: '🏠', label: 'Accueil' },
+              { href: '/sports', icon: '⚽', label: 'Sports' },
+              { href: '/about', icon: 'ℹ️', label: 'À propos' },
+              { href: '/report', icon: '📝', label: 'Signaler' },
+              { href: '/login', icon: '👤', label: 'Connexion' },
+            ].map((item, index) => (
+              <a
+                key={index}
+                href={item.href}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '12px 20px',
+                  color: '#374151',
+                  textDecoration: 'none',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  borderBottom: index < 4 ? '1px solid #f3f4f6' : 'none',
+                  transition: 'background-color 0.2s ease',
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                onClick={() => {
+                  console.log('🔍 Clic sur lien:', item.label); // ✅ DEBUG
+                  setShowMenu(false);
+                }}
+              >
+                <span style={{ fontSize: '18px', marginRight: '12px' }}>
+                  {item.icon}
+                </span>
+                {item.label}
+              </a>
+            ))}
+          </div>
         </div>
       )}
 
