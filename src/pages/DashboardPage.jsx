@@ -62,6 +62,8 @@ const DashboardPage = () => {
               Découvrez les installations sportives près de chez vous
             </p>
           </Link>
+
+          {/* add contact form */}
         </div>
       </div>
     </div>
