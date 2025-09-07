@@ -45,6 +45,11 @@ export default function MapView() {
     console.log('🔍 DEBUG handleSuggestionClick - typeof suggestion:', typeof suggestion);
     console.log('🔍 DEBUG handleSuggestionClick - activeFilters avant:', activeFilters);
     
+    // ✅ FERMER LES POPUPS QUAND ON SÉLECTIONNE UN SPORT
+    setShowFiltersPopup(false);
+    setShowSportsPopup(false);
+    setPopupInfoEquipment(null);
+    
     // Add the selected suggestion to active filters
     if (!activeFilters.includes(suggestion)) {
       const newFilters = [...activeFilters, suggestion];
@@ -108,6 +113,10 @@ export default function MapView() {
       
       console.log('🎯 Clic équipement:', { equipmentId, longitude, latitude });
       
+      // ✅ FERMER LES AUTRES POPUPS AVANT D'OUVRIR LE POPUP ÉQUIPEMENT
+      setShowFiltersPopup(false);
+      setShowSportsPopup(false);
+      
       // ✅ DÉTECTER SI ON EST SUR DESKTOP
       const isDesktop = window.innerWidth >= 1024;
       console.log('🖥️ Desktop detecté:', isDesktop);
@@ -143,9 +152,9 @@ export default function MapView() {
         latitude: latitude,
         properties: {
           ...feature.properties,
-          id: equipmentId  // ✅ S'ASSURER QUE L'ID EST DANS properties
+          id: equipmentId
         },
-        id: equipmentId,  // ✅ ET AUSSI EN TANT QUE PROPRIÉTÉ DIRECTE
+        id: equipmentId,
         geometry: feature.geometry
       });
       
@@ -155,6 +164,11 @@ export default function MapView() {
         'feature.properties.id': feature.properties.id,
         'equipmentId final': equipmentId
       });
+    } else {
+      // ✅ CLIC SUR LA CARTE (PAS SUR UN ÉQUIPEMENT) - FERMER TOUS LES POPUPS
+      setShowFiltersPopup(false);
+      setShowSportsPopup(false);
+      setPopupInfoEquipment(null);
     }
   };
 
@@ -412,7 +426,13 @@ export default function MapView() {
             position: 'relative',
             transition: 'all 0.2s ease',
           }}
-          onClick={() => setShowSportsPopup(!showSportsPopup)}
+          onClick={() => {
+            // ✅ FERMER LES AUTRES POPUPS
+            setShowFiltersPopup(false);
+            setPopupInfoEquipment(null);
+            // ✅ TOGGLE LE POPUP SPORTS
+            setShowSportsPopup(!showSportsPopup);
+          }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span style={{ fontSize: '20px' }}>⚽</span>
@@ -447,7 +467,13 @@ export default function MapView() {
             boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             cursor: 'pointer',
           }}
-          onClick={() => setShowFiltersPopup(true)}
+          onClick={() => {
+            // ✅ FERMER LES AUTRES POPUPS
+            setShowSportsPopup(false);
+            setPopupInfoEquipment(null);
+            // ✅ OUVRIR LE POPUP FILTRES
+            setShowFiltersPopup(true);
+          }}
         >
           <Filter size={24} color="black" />
         </div>
@@ -497,11 +523,11 @@ export default function MapView() {
                 color: '#000000',
                 boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
                 transition: 'box-shadow 0.2s ease',
-                '&:hover': {
-                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)'
-                }
               }}
-              onClick={() => setShowFiltersPopup(false)}
+              onClick={() => {
+                // ✅ FERMER SEULEMENT CE POPUP
+                setShowFiltersPopup(false);
+              }}
             >
               ×
             </button>
@@ -674,7 +700,10 @@ export default function MapView() {
                 boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
                 transition: 'box-shadow 0.2s ease',
               }}
-              onClick={() => setShowSportsPopup(false)}
+              onClick={() => {
+                // ✅ FERMER SEULEMENT CE POPUP
+                setShowSportsPopup(false);
+              }}
             >
               ×
             </button>
