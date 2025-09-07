@@ -15,6 +15,7 @@ import MapPopup from './popup/MapPopup';
 import { LoadingSpinner } from '../LoadingSpinner';
 import SearchBar from './searchBar/SearchBar';
 import { clusterLayer, clusterCountLayer, unclusteredPointLayer, sportIconLayer } from './layers';
+import Navigation from '../../layouts/Navigation'; // ✅ IMPORTER NAVIGATION
 
 // Utils
 import { formatSports } from '@/utils/formatSports'; // ✅ AJOUTER CETTE LIGNE
@@ -40,6 +41,7 @@ export default function MapView() {
   const [showFiltersPopup, setShowFiltersPopup] = useState(false);
   const [showSportsPopup, setShowSportsPopup] = useState(false); // ✅ AJOUTER CETTE LIGNE
   const [showMenu, setShowMenu] = useState(false); // ✅ AJOUTER LE STATE MENU
+  const [showNavigation, setShowNavigation] = useState(false); // ✅ NOUVEAU STATE POUR LA NAVIGATION
 
   const handleSuggestionClick = (suggestion) => {
     console.log('🔍 DEBUG handleSuggestionClick - suggestion:', suggestion);
@@ -105,7 +107,8 @@ export default function MapView() {
         setShowFiltersPopup(false);
         setShowSportsPopup(false);
         setPopupInfoEquipment(null);
-        setShowMenu(false); // ✅ FERMER LE MENU AUSSI
+        setShowMenu(false);
+        setShowNavigation(false); // ✅ FERMER LA NAVIGATION AUSSI
       }
     };
 
@@ -189,8 +192,9 @@ export default function MapView() {
       setShowFiltersPopup(false);
       setShowSportsPopup(false);
       setPopupInfoEquipment(null);
-      setShowMenu(false); // ✅ FERMER LE MENU AUSSI
-      console.log('🔍 Menu fermé via clic carte'); // ✅ DEBUG
+      setShowMenu(false);
+      setShowNavigation(false); // ✅ FERMER LA NAVIGATION AUSSI
+      console.log('🔍 Navigation fermée via clic carte');
     }
   };
 
@@ -458,7 +462,8 @@ export default function MapView() {
           onClick={() => {
             setShowFiltersPopup(false);
             setPopupInfoEquipment(null);
-            setShowMenu(false); // ✅ FERMER LE MENU
+            setShowMenu(false);
+            setShowNavigation(false); // ✅ FERMER LA NAVIGATION
             setShowSportsPopup(!showSportsPopup);
           }}
         >
@@ -498,7 +503,8 @@ export default function MapView() {
           onClick={() => {
             setShowSportsPopup(false);
             setPopupInfoEquipment(null);
-            setShowMenu(false); // ✅ FERMER LE MENU
+            setShowMenu(false);
+            setShowNavigation(false); // ✅ FERMER LA NAVIGATION
             setShowFiltersPopup(true);
           }}
         >
@@ -515,17 +521,18 @@ export default function MapView() {
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          position: 'relative', // ✅ POUR LE DROPDOWN
+          position: 'relative',
         }}
         onClick={(e) => {
-          e.stopPropagation(); // ✅ EMPÊCHER LA PROPAGATION
-          console.log('🔍 Clic sur menu, état actuel:', showMenu); // ✅ DEBUG
-          // ✅ FERMER LES AUTRES POPUPS ET TOGGLE LE MENU
+          e.stopPropagation();
+          console.log('🔍 Clic sur menu, état actuel:', showNavigation);
+          // ✅ FERMER LES AUTRES POPUPS ET TOGGLE LA NAVIGATION
           setShowFiltersPopup(false);
           setShowSportsPopup(false);
           setPopupInfoEquipment(null);
-          setShowMenu(!showMenu);
-          console.log('🔍 Nouveau état menu:', !showMenu); // ✅ DEBUG
+          setShowMenu(false); // ✅ GARDER showMenu À FALSE
+          setShowNavigation(!showNavigation); // ✅ TOGGLE LA NAVIGATION
+          console.log('🔍 Nouveau état navigation:', !showNavigation);
         }}
         >
           <div style={{
@@ -889,96 +896,20 @@ export default function MapView() {
         </div>
       )}
 
-      {/* Menu Dropdown */}
-      {showMenu && (
+      {/* Navigation Bar */}
+      {showNavigation && (
         <div
           style={{
             position: 'fixed',
-            top: '80px', // Sous les boutons
-            right: '20px', // Aligné à droite
-            width: '250px',
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-            zIndex: 50, // Au-dessus des autres éléments
-            border: '1px solid #e5e7eb',
-            overflow: 'hidden',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 51, // Au-dessus de tout
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           }}
           onClick={(e) => e.stopPropagation()} // ✅ EMPÊCHER LA FERMETURE
         >
-          {/* Header */}
-          <div style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid #f3f4f6',
-            backgroundColor: '#f8fafc',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <h3 style={{ margin: 0, fontWeight: '600', color: '#000', fontSize: '16px' }}>
-              Navigation
-            </h3>
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // ✅ EMPÊCHER LA PROPAGATION
-                setShowMenu(false);
-                console.log('🔍 Menu fermé via bouton X'); // ✅ DEBUG
-              }}
-              style={{
-                background: 'none',
-                border: '1px solid #000',
-                borderRadius: '50%',
-                width: '32px',
-                height: '32px',
-                fontSize: '18px',
-                cursor: 'pointer',
-                color: '#000',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Menu Items */}
-          <div style={{ padding: '8px 0' }}>
-            {[
-              { href: '/', icon: '🏠', label: 'Accueil' },
-              { href: '/sports', icon: '⚽', label: 'Sports' },
-              { href: '/about', icon: 'ℹ️', label: 'À propos' },
-              { href: '/report', icon: '📝', label: 'Signaler' },
-              { href: '/login', icon: '👤', label: 'Connexion' },
-            ].map((item, index) => (
-              <a
-                key={index}
-                href={item.href}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '12px 20px',
-                  color: '#374151',
-                  textDecoration: 'none',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  borderBottom: index < 4 ? '1px solid #f3f4f6' : 'none',
-                  transition: 'background-color 0.2s ease',
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                onClick={() => {
-                  console.log('🔍 Clic sur lien:', item.label); // ✅ DEBUG
-                  setShowMenu(false);
-                }}
-              >
-                <span style={{ fontSize: '18px', marginRight: '12px' }}>
-                  {item.icon}
-                </span>
-                {item.label}
-              </a>
-            ))}
-          </div>
+          <Navigation />
         </div>
       )}
 
@@ -1003,10 +934,11 @@ export default function MapView() {
         {/* SearchBar Component repositionnée */}
         <div style={{ 
           position: 'absolute', 
-          top: '80px', // ✅ PLUS BAS POUR ÉVITER LES BOUTONS
+          top: showNavigation ? '140px' : '80px', // ✅ PLUS BAS SI NAVIGATION VISIBLE
           left: '20px',
-          right: '20px', // ✅ ESPACE POUR LES BOUTONS À DROITE
-          zIndex: 48 // ✅ EN DESSOUS DES BOUTONS
+          right: '20px',
+          zIndex: 48,
+          transition: 'top 0.2s ease', // ✅ ANIMATION FLUIDE
         }}>
           <SearchBar
             onSearch={handleSearch}
