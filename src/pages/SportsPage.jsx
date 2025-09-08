@@ -17,7 +17,7 @@ const SportsPage = () => {
 
   const handleSportClick = (sport) => {
     window.scrollTo(0, 0);
-    navigate(`/map?sport=${encodeURIComponent(sport)}`);
+    navigate(`/map?sports=${encodeURIComponent(sport)}`);
   };
 
   return (
