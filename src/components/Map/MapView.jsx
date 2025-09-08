@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom'; // ✅ VÉRIFIER CET IMPORT
 import Map, { Source, Layer } from 'react-map-gl';
 import { ToggleLeft, ToggleRight, Filter } from 'lucide-react';
 
@@ -24,8 +24,7 @@ import { formatSports } from '@/utils/formatSports'; // ✅ AJOUTER CETTE LIGNE
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 export default function MapView() {
-  const [searchParams] = useSearchParams();
-  const sportParam = searchParams.get('sport');
+  const [searchParams, setSearchParams] = useSearchParams(); // ✅ DESTRUCTURER CORRECTEMENT
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE);
   const [styleLoaded, setStyleLoaded] = useState(false);
   
@@ -55,10 +54,12 @@ export default function MapView() {
       const newFilters = [...activeFilters, suggestion];
       setActiveFilters(newFilters);
       
-      // ✅ METTRE À JOUR L'URL AVEC TOUS LES SPORTS
-      const [searchParams, setSearchParams] = useSearchParams();
-      searchParams.set('sports', newFilters.join(','));
-      setSearchParams(searchParams, { replace: true });
+      // ✅ UTILISER setSearchParams CORRECTEMENT
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set('sports', newFilters.join(','));
+      newSearchParams.delete('sport'); // ✅ SUPPRIMER L'ANCIEN FORMAT SI PRÉSENT
+      setSearchParams(newSearchParams, { replace: true });
+      
       console.log('🔗 Sports dans l\'URL:', newFilters);
     }
     
@@ -66,11 +67,58 @@ export default function MapView() {
   };
 
   useEffect(() => {
-    if (sportParam && sports?.includes(sportParam)) {
-      handleSuggestionClick(sportParam);
+    // ✅ GÉRER LES DEUX FORMATS D'URL : 'sport' (ancien) ET 'sports' (nouveau)
+    const sportParam = searchParams.get('sport'); // Format ancien (singulier)
+    const sportsParam = searchParams.get('sports'); // Format nouveau (pluriel)
+    
+    console.log('🔗 Paramètres URL détectés:', { sportParam, sportsParam });
+    
+    // Déterminer quels sports à filtrer
+    let sportsToFilter = [];
+    
+    if (sportsParam) {
+      // Nouveau format : sports=Tennis,Football,Basketball
+      sportsToFilter = sportsParam.split(',').map(s => s.trim());
+    } else if (sportParam) {
+      // Ancien format : sport=Tennis
+      sportsToFilter = [sportParam.trim()];
+    }
+    
+    console.log('🎯 Sports à filtrer depuis URL:', sportsToFilter);
+    
+    if (sportsToFilter.length > 0 && sports) {
+      console.log('🔗 Sports disponibles dans la liste:', sports.slice(0, 5), '...');
+      
+      // ✅ VÉRIFIER QUE TOUS LES SPORTS EXISTENT DANS LA LISTE
+      const validSports = sportsToFilter.filter(sport => {
+        const isValid = sports.includes(sport);
+        console.log(`🔍 Sport "${sport}" valide:`, isValid);
+        return isValid;
+      });
+      
+      console.log('✅ Sports valides trouvés:', validSports);
+      
+      if (validSports.length > 0) {
+        console.log('🎯 Application des filtres:', validSports);
+        setActiveFilters(validSports);
+        
+        // ✅ NETTOYER L'URL - CONVERTIR L'ANCIEN FORMAT VERS LE NOUVEAU
+        if (sportParam && !sportsParam) {
+          const newSearchParams = new URLSearchParams(searchParams);
+          newSearchParams.delete('sport'); // Supprimer l'ancien paramètre
+          newSearchParams.set('sports', validSports.join(',')); // Ajouter le nouveau
+          setSearchParams(newSearchParams, { replace: true });
+        }
+      } else {
+        console.warn('⚠️ Aucun sport valide trouvé dans la liste');
+      }
+    } else if (sportsToFilter.length === 0) {
+      // ✅ SI AUCUN SPORT DANS L'URL, NETTOYER LES FILTRES
+      console.log('🧹 Nettoyage des filtres (aucun sport dans URL)');
+      setActiveFilters([]);
     }
 
-    // Handle URL parameters for shared equipment
+    // Handle URL parameters for shared equipment (reste inchangé)
     const equipmentId = searchParams.get('equipmentId');
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
@@ -99,7 +147,7 @@ export default function MapView() {
         });
       }
     }
-  }, [sportParam, sports, equipments, searchParams]);
+  }, [searchParams, sports, equipments, setSearchParams]); // ✅ AJOUTER setSearchParams DANS LES DÉPENDANCES
 
   // Ligne ~60-70, ajouter l'useEffect pour Escape :
   useEffect(() => {
@@ -229,19 +277,19 @@ export default function MapView() {
     const newFilters = activeFilters.filter(filter => filter !== filterToRemove);
     setActiveFilters(newFilters);
     
-    // ✅ METTRE À JOUR L'URL AVEC TOUS LES SPORTS RESTANTS
-    const [searchParams, setSearchParams] = useSearchParams();
+    // ✅ UTILISER setSearchParams CORRECTEMENT
+    const newSearchParams = new URLSearchParams(searchParams);
     
     if (newFilters.length > 0) {
       // S'il reste des filtres, mettre à jour l'URL
-      searchParams.set('sports', newFilters.join(','));
+      newSearchParams.set('sports', newFilters.join(','));
     } else {
       // S'il n'y a plus de filtres, supprimer le paramètre
-      searchParams.delete('sports');
-      searchParams.delete('sport'); // Nettoyer aussi l'ancien paramètre
+      newSearchParams.delete('sports');
+      newSearchParams.delete('sport'); // ✅ SUPPRIMER AUSSI L'ANCIEN FORMAT
     }
     
-    setSearchParams(searchParams, { replace: true });
+    setSearchParams(newSearchParams, { replace: true });
     console.log('🔗 URL mise à jour, sports restants:', newFilters);
   };
 
@@ -449,6 +497,16 @@ export default function MapView() {
     }
   };
 
+  // Ligne 290-300, ajouter ce useEffect pour synchroniser filteredEquipments :
+  // ✅ METTRE À JOUR filteredEquipments QUAND LES FILTRES CHANGENT
+  useEffect(() => {
+    if (equipments) {
+      const filtered = getFilteredFeatures();
+      console.log('🔄 Mise à jour filteredEquipments:', filtered.features.length, 'équipements');
+      setFilteredEquipments(filtered);
+    }
+  }, [equipments, activeFilters, showFreeAccessOnly, showHandicapAccessOnly]);
+
   return (
     <div style={{ 
       position: 'relative', 
@@ -611,7 +669,7 @@ export default function MapView() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#000000',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)',
                 transition: 'box-shadow 0.2s ease',
               }}
               onClick={() => {
@@ -906,7 +964,7 @@ export default function MapView() {
               color: '#6b7280',
             }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#374151' }}>
+              <h4 style={{ margin: 0, fontSize: '18px', color: '#374151' }}>
                 Aucun sport sélectionné
               </h4>
               <p style={{ margin: 0, fontSize: '14px' }}>
