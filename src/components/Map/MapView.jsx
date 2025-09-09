@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom'; // ✅ VÉRIFIER CET IMPORT
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Map, { Source, Layer } from 'react-map-gl';
 import { ToggleLeft, ToggleRight, Filter } from 'lucide-react';
 
@@ -15,10 +15,10 @@ import MapPopup from './popup/MapPopup';
 import { LoadingSpinner } from '../LoadingSpinner';
 import SearchBar from './searchBar/SearchBar';
 import { clusterLayer, clusterCountLayer, unclusteredPointLayer, sportIconLayer } from './layers';
-import Navigation from '../../layouts/Navigation'; // ✅ IMPORTER NAVIGATION
+import Navigation from '../../layouts/Navigation';
 
 // Utils
-import { formatSports } from '@/utils/formatSports'; // ✅ AJOUTER CETTE LIGNE
+import { formatSports } from '@/utils/formatSports';
 
 // Styles
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -71,269 +71,28 @@ export default function MapView() {
     );
   }
 
-  const [searchParams, setSearchParams] = useSearchParams(); // ✅ DESTRUCTURER CORRECTEMENT
+  const [searchParams, setSearchParams] = useSearchParams();
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE);
   const [styleLoaded, setStyleLoaded] = useState(false);
   
-  // ✅ HOOK SIMPLIFIÉ
+  // ✅ HOOKS
   const { equipments, errorEquipments, loadingEquipments } = useEquipments();
   const { sports, errorSports, loadingSports } = useSports();
+  
+  // ✅ ÉTATS
   const [popupInfoEquipment, setPopupInfoEquipment] = useState(null);
-  const [filteredEquipments, setFilteredEquipments] = useState(null);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
-  const [activeFilters, setActiveFilters] = useState([]); // State to track active filters
+  const [activeFilters, setActiveFilters] = useState([]);
   const [showFreeAccessOnly, setShowFreeAccessOnly] = useState(false);
   const [showHandicapAccessOnly, setShowHandicapAccessOnly] = useState(false);
   const [showFiltersPopup, setShowFiltersPopup] = useState(false);
-  const [showSportsPopup, setShowSportsPopup] = useState(false); // ✅ AJOUTER CETTE LIGNE
-  const [showMenu, setShowMenu] = useState(false); // ✅ AJOUTER LE STATE MENU
-  const [showNavigation, setShowNavigation] = useState(false); // ✅ NOUVEAU STATE POUR LA NAVIGATION
-  const [showUnifiedPopup, setShowUnifiedPopup] = useState(false); // ✅ NOUVEAU STATE POUR LA POPUP UNIFIÉE
+  const [showSportsPopup, setShowSportsPopup] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showNavigation, setShowNavigation] = useState(false);
+  const [showUnifiedPopup, setShowUnifiedPopup] = useState(false);
 
-  // ✅ DÉFINIR arraysEqual EN PREMIER (GARDER CETTE VERSION)
-  const arraysEqual = (a, b) => {
-    if (a.length !== b.length) return false;
-    return a.every((val, index) => val === b[index]);
-  };
-
-  // ✅ FONCTION SIMPLE SANS useCallback
-  const handleSuggestionClick = (suggestion) => {
-    console.log('🔍 Ajout du sport:', suggestion);
-    
-    setShowFiltersPopup(false);
-    setShowSportsPopup(false);
-    setPopupInfoEquipment(null);
-    setShowNavigation(false);
-    
-    if (!activeFilters.includes(suggestion)) {
-      const newFilters = [...activeFilters, suggestion];
-      setActiveFilters(newFilters);
-      
-      const newSearchParams = new URLSearchParams(searchParams);
-      newSearchParams.set('sports', newFilters.join(','));
-      newSearchParams.delete('sport');
-      setSearchParams(newSearchParams, { replace: true });
-    }
-    
-    setSearchSuggestions([]);
-  };
-
-  // ✅ MAINTENANT useEffect peut utiliser arraysEqual
-  useEffect(() => {
-    const sportParam = searchParams.get('sport');
-    const sportsParam = searchParams.get('sports');
-    
-    let sportsToFilter = [];
-    
-    if (sportsParam) {
-      sportsToFilter = sportsParam.split(',').map(s => s.trim());
-    } else if (sportParam) {
-      sportsToFilter = [sportParam.trim()];
-    }
-    
-    // ✅ SIMPLIFIER LA COMPARAISON
-    const currentFiltersString = activeFilters.sort().join(',');
-    const newFiltersString = sportsToFilter.sort().join(',');
-    
-    if (sportsToFilter.length > 0 && sports && currentFiltersString !== newFiltersString) {
-      const validSports = sportsToFilter.filter(sport => sports.includes(sport));
-      
-      if (validSports.length > 0) {
-        setActiveFilters(validSports);
-        
-        if (sportParam && !sportsParam) {
-          const newSearchParams = new URLSearchParams(searchParams);
-          newSearchParams.delete('sport');
-          newSearchParams.set('sports', validSports.join(','));
-          setSearchParams(newSearchParams, { replace: true });
-        }
-      }
-    } else if (sportsToFilter.length === 0 && activeFilters.length > 0) {
-      setActiveFilters([]);
-    }
-
-    // Handle URL parameters for shared equipment (reste inchangé)
-    const equipmentId = searchParams.get('equipmentId');
-    const lat = searchParams.get('lat');
-    const lng = searchParams.get('lng');
-    const zoom = searchParams.get('zoom');
-
-    if (equipmentId && lat && lng && equipments) {
-      const equipment = equipments.features?.find(
-        feature => feature.properties.id === equipmentId
-      );
-
-      if (equipment) {
-        setPopupInfoEquipment({
-          longitude: parseFloat(lng),
-          latitude: parseFloat(lat),
-          properties: equipment.properties
-        });
-
-        setViewState(prevState => ({
-          ...prevState,
-          longitude: parseFloat(lng),
-          latitude: parseFloat(lat),
-          zoom: zoom ? parseFloat(zoom) : 18
-        }));
-      }
-    }
-  }, [searchParams, sports, equipments]); // ✅ SUPPRIMER activeFilters DES DÉPENDANCES
-
-  // Ligne ~60-70, ajouter l'useEffect pour Escape :
-  useEffect(() => {
-    // ✅ FERMER LES POPUPS AVEC LA TOUCHE ESCAPE
-    const handleEscapeKey = (event) => {
-      if (event.key === 'Escape') {
-        setShowFiltersPopup(false);
-        setShowSportsPopup(false);
-        setPopupInfoEquipment(null);
-        setShowMenu(false);
-        setShowNavigation(false); // ✅ FERMER LA NAVIGATION AUSSI
-        setShowUnifiedPopup(false); // ✅ AJOUTER CETTE LIGNE
-      }
-    };
-
-    document.addEventListener('keydown', handleEscapeKey);
-    
-    return () => {
-      document.removeEventListener('keydown', handleEscapeKey);
-    };
-  }, []);
-
-  // Ligne 375-385, ajouter l'useEffect pour synchroniser filteredEquipments :
-
-  // ✅ METTRE À JOUR filteredEquipments QUAND LES FILTRES CHANGENT
-  useEffect(() => {
-    if (equipments) {
-      const filtered = getFilteredFeatures();
-      setFilteredEquipments(filtered);
-    }
-  }, [equipments, activeFilters, showFreeAccessOnly, showHandicapAccessOnly]);
-
-  if (errorEquipments) {
-    return <div>Error loading map data</div>;
-  }
-
-  if (loadingEquipments) {
-    return <LoadingSpinner />;
-  }
-
-  const onClick = (event) => {
-    const feature = event.features?.[0];
-    if (feature && feature.layer.id === 'unclustered-point') {
-      const equipmentId = feature.properties?.id || feature.id;
-      const longitude = feature.geometry.coordinates[0];
-      const latitude = feature.geometry.coordinates[1];
-      
-      console.log('🎯 Clic équipement:', { equipmentId, longitude, latitude });
-      
-      // ✅ FERMER TOUS LES POPUPS ET LA NAVIGATION AVANT D'OUVRIR LE POPUP ÉQUIPEMENT
-      setShowFiltersPopup(false);
-      setShowSportsPopup(false);
-      setShowUnifiedPopup(false); // ✅ FERMER LA POPUP UNIFIÉE AUSSI
-      setShowNavigation(false);
-      
-      // ✅ DÉTECTER SI ON EST SUR DESKTOP
-      const isDesktop = window.innerWidth >= 1024;
-      console.log('🖥️ Desktop detecté:', isDesktop);
-      
-      if (!isDesktop) {
-        // Mobile/Tablette
-        let offset;
-        if (window.innerWidth <= 768) {
-          offset = 0.004;
-        } else {
-          offset = 0.015;
-        }
-        
-        setViewState(prevState => ({
-          ...prevState,
-          longitude: longitude,
-          latitude: latitude + offset,
-          transitionDuration: 600
-        }));
-      } else {
-        // Desktop : centrage direct
-        setViewState(prevState => ({
-          ...prevState,
-          longitude: longitude,
-          latitude: latitude,
-          transitionDuration: 400
-        }));
-      }
-      
-      // ✅ AFFICHER LA POPUP/SIDEBAR
-      setPopupInfoEquipment({
-        longitude: longitude,
-        latitude: latitude,
-        properties: {
-          ...feature.properties,
-          id: equipmentId
-        },
-        id: equipmentId,
-        geometry: feature.geometry
-      });
-      
-      console.log('✅ Popup info définie:', { 
-        equipmentId, 
-        isDesktop,
-        'feature.properties.id': feature.properties.id,
-        'equipmentId final': equipmentId
-      });
-    } else {
-      // ✅ CLIC SUR LA CARTE (PAS SUR UN ÉQUIPEMENT) - FERMER TOUS LES POPUPS
-      setShowUnifiedPopup(false);
-      setPopupInfoEquipment(null);
-      setShowMenu(false);
-      setShowNavigation(false);
-      console.log('🔍 Navigation fermée via clic carte');
-    }
-  };
-
-  const handleSearch = (searchTerm) => {
-    if (!searchTerm) {
-      setFilteredEquipments(null);
-      setSearchSuggestions([]);
-      return;
-    }
-    if (searchTerm.length < 2) {
-      setFilteredEquipments(null);
-      setSearchSuggestions([]);
-      return;
-    }
-
-    const normalizedSearchTerm = searchTerm.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-    // Filter sports for autocomplete suggestions
-    const suggestions = sports.filter(sport =>
-      sport.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(normalizedSearchTerm)
-    );
-    console.log('Suggestions:', suggestions);
-    setSearchSuggestions(suggestions);
-  };
-
-  // ✅ FONCTION SIMPLE SANS useCallback
-  const handleRemoveFilter = (filterToRemove) => {
-    console.log('🗑️ Suppression du filtre:', filterToRemove);
-    
-    const newFilters = activeFilters.filter(filter => filter !== filterToRemove);
-    setActiveFilters(newFilters);
-    
-    const newSearchParams = new URLSearchParams(searchParams);
-    
-    if (newFilters.length > 0) {
-      newSearchParams.set('sports', newFilters.join(','));
-    } else {
-      newSearchParams.delete('sports');
-      newSearchParams.delete('sport');
-    }
-    
-    setSearchParams(newSearchParams, { replace: true });
-  };
-
-  // ✅ FONCTION SIMPLE SANS useCallback
-  const getFilteredFeatures = () => {
+  // ✅ MÉMORISER getFilteredFeatures AVEC useMemo AU LIEU DE useCallback
+  const filteredEquipments = useMemo(() => {
     if (!equipments?.features) {
       return { type: 'FeatureCollection', features: [] };
     }
@@ -387,158 +146,135 @@ export default function MapView() {
       type: 'FeatureCollection',
       features: features
     };
-  };
+  }, [equipments, activeFilters, showFreeAccessOnly, showHandicapAccessOnly]);
 
-  // Add this function to handle map load
-  const onMapLoad = (event) => {
-    const map = event.target;
-    setStyleLoaded(true);
+  // ✅ MÉMORISER handleSuggestionClick
+  const handleSuggestionClick = useCallback((suggestion) => {
+    console.log('🔍 Ajout du sport:', suggestion);
     
-    // ✅ CHARGER LES IMAGES DEPUIS PUBLIC/
-    map.loadImage('/map-pinv9.png', (error, image) => {
-      if (error) {
-        console.error('❌ Erreur chargement /map-pinv9.png:', error);
-        return;
-      }
-      if (!map.hasImage('map-pin')) {
-        map.addImage('map-pin', image);
-        console.log('✅ map-pin chargé');
-      }
-    });
-
-    map.loadImage('/map-pin-active.png', (error, image) => {
-      if (error) {
-        console.error('❌ Erreur chargement /map-pin-active.png:', error);
-        return;
-      }
-      if (!map.hasImage('map-pin-active')) {
-        map.addImage('map-pin-active', image);
-        console.log('✅ map-pin-active chargé');
-      }
-    });
-  };
-
-  // Modifier getUnclusteredPointLayer pour utiliser des points simples :
-  const getUnclusteredPointLayer = () => {
-    const isDesktop = window.innerWidth >= 1024;
-    const selectedId = popupInfoEquipment?.properties?.id || popupInfoEquipment?.id;
+    setShowFiltersPopup(false);
+    setShowSportsPopup(false);
+    setPopupInfoEquipment(null);
+    setShowNavigation(false);
     
-    return {
-      ...unclusteredPointLayer,
-      layout: {
-        ...unclusteredPointLayer.layout,
-        'icon-image': [
-          'case',
-          ['==', ['get', 'id'], selectedId || ''],
-          'map-pin-active', // Pin actif quand sélectionné
-          'map-pin' // Pin orange par défaut
-        ],
-        'icon-size': [
-          'case',
-          ['==', ['get', 'id'], selectedId || ''],
-          0.1, // ✅ MÊME TAILLE QUE LE PIN ORANGE (était 0.4)
-          0.3  // Taille normale
-        ]
+    if (!activeFilters.includes(suggestion)) {
+      const newFilters = [...activeFilters, suggestion];
+      setActiveFilters(newFilters);
+      
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set('sports', newFilters.join(','));
+      newSearchParams.delete('sport');
+      setSearchParams(newSearchParams, { replace: true });
+    }
+    
+    setSearchSuggestions([]);
+  }, [activeFilters, searchParams, setSearchParams]);
+
+  // ✅ MÉMORISER handleRemoveFilter
+  const handleRemoveFilter = useCallback((filterToRemove) => {
+    console.log('🗑️ Suppression du filtre:', filterToRemove);
+    
+    const newFilters = activeFilters.filter(filter => filter !== filterToRemove);
+    setActiveFilters(newFilters);
+    
+    const newSearchParams = new URLSearchParams(searchParams);
+    
+    if (newFilters.length > 0) {
+      newSearchParams.set('sports', newFilters.join(','));
+    } else {
+      newSearchParams.delete('sports');
+      newSearchParams.delete('sport');
+    }
+    
+    setSearchParams(newSearchParams, { replace: true });
+  }, [activeFilters, searchParams, setSearchParams]);
+
+  // ✅ USEEFFECT SIMPLIFIÉ POUR LES PARAMÈTRES URL
+  useEffect(() => {
+    const sportParam = searchParams.get('sport');
+    const sportsParam = searchParams.get('sports');
+    
+    let sportsToFilter = [];
+    
+    if (sportsParam) {
+      sportsToFilter = sportsParam.split(',').map(s => s.trim());
+    } else if (sportParam) {
+      sportsToFilter = [sportParam.trim()];
+    }
+    
+    // ✅ COMPARAISON SIMPLE
+    const currentFiltersString = [...activeFilters].sort().join(',');
+    const newFiltersString = [...sportsToFilter].sort().join(',');
+    
+    if (sportsToFilter.length > 0 && sports && currentFiltersString !== newFiltersString) {
+      const validSports = sportsToFilter.filter(sport => sports.includes(sport));
+      
+      if (validSports.length > 0) {
+        setActiveFilters(validSports);
+        
+        if (sportParam && !sportsParam) {
+          const newSearchParams = new URLSearchParams(searchParams);
+          newSearchParams.delete('sport');
+          newSearchParams.set('sports', validSports.join(','));
+          setSearchParams(newSearchParams, { replace: true });
+        }
+      }
+    } else if (sportsToFilter.length === 0 && activeFilters.length > 0) {
+      setActiveFilters([]);
+    }
+
+    // Handle URL parameters for shared equipment
+    const equipmentId = searchParams.get('equipmentId');
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    const zoom = searchParams.get('zoom');
+
+    if (equipmentId && lat && lng && equipments) {
+      const equipment = equipments.features?.find(
+        feature => feature.properties.id === equipmentId
+      );
+
+      if (equipment) {
+        setPopupInfoEquipment({
+          longitude: parseFloat(lng),
+          latitude: parseFloat(lat),
+          properties: equipment.properties
+        });
+
+        setViewState(prevState => ({
+          ...prevState,
+          longitude: parseFloat(lng),
+          latitude: parseFloat(lat),
+          zoom: zoom ? parseFloat(zoom) : 18
+        }));
+      }
+    }
+  }, [searchParams, sports, equipments]); // ✅ RETIRER activeFilters DES DÉPENDANCES
+
+  // ✅ USEEFFECT POUR ESCAPE
+  useEffect(() => {
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        setShowFiltersPopup(false);
+        setShowSportsPopup(false);
+        setPopupInfoEquipment(null);
+        setShowMenu(false);
+        setShowNavigation(false);
+        setShowUnifiedPopup(false);
       }
     };
-  };
 
-  const toggleContainerStyle = {
-    position: 'absolute',
-    top: '80px',
-    left: '10px',
-    backgroundColor: 'white',
-    padding: '4px 8px',
-    borderRadius: '8px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-    zIndex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    color: 'black',
-    cursor: 'pointer',
-    fontSize: '12px',
-    transition: 'all 0.2s ease',
-    // ✅ VERSIONS SIMPLIFIÉES
-    WebkitUserSelect: 'none',
-    userSelect: 'none'
-  };
+    document.addEventListener('keydown', handleEscapeKey);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, []);
 
-  const toggleIconStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    color: showFreeAccessOnly ? '#3498db' : 'grey',
-    transition: 'color 0.2s ease',
-    '@media (maxWidth: 768px)': {
-      transform: 'scale(1.2)',
-    }
-  };
-
-  // Ligne ~325-365, corriger la création des images dans createMainImages :
-  const createMainImages = () => {
-    try {
-      // Pin par défaut
-      if (!map.hasImage('map-pin')) {
-        const canvas1 = document.createElement('canvas');
-        const ctx1 = canvas1.getContext('2d');
-        canvas1.width = 30;
-        canvas1.height = 30; // ✅ CORRIGER: était ctx1.height = 30
-        ctx1.beginPath();
-        ctx1.arc(15, 15, 12, 0, 2 * Math.PI);
-        ctx1.fillStyle = '#3498DB';
-        ctx1.fill();
-        ctx1.strokeStyle = '#2980b9';
-        ctx1.lineWidth = 2;
-        ctx1.stroke();
-        map.addImage('map-pin', canvas1);
-        console.log('✅ map-pin créé');
-      }
-
-      // Pin actif
-      if (!map.hasImage('map-pin-active')) {
-        const canvas2 = document.createElement('canvas');
-        const ctx2 = canvas2.getContext('2d');
-        canvas2.width = 30;
-        ctx2.height = 30; // ✅ CORRIGER: était ctx2.height = 30
-        ctx2.beginPath();
-        ctx2.arc(15, 15, 12, 0, 2 * Math.PI);
-        ctx2.fillStyle = '#e74c3c';
-        ctx2.fill();
-        ctx2.strokeStyle = '#c0392b';
-        ctx2.lineWidth = 2;
-        ctx2.stroke();
-        map.addImage('map-pin-active', canvas2);
-        console.log('✅ map-pin-active créé');
-      }
-
-      // Pin vert pour desktop
-      if (!map.hasImage('map-pin-green')) {
-        const canvas3 = document.createElement('canvas');
-        const ctx3 = canvas3.getContext('2d');
-        ctx3.width = 30;
-        ctx3.height = 30; // ✅ CORRIGER: était ctx3.height = 30
-        ctx3.beginPath();
-        ctx3.arc(15, 15, 12, 0, 2 * Math.PI);
-        ctx3.fillStyle = '#22c55e';
-        ctx3.fill();
-        ctx3.strokeStyle = '#16a34a';
-        ctx3.lineWidth = 2;
-        ctx3.stroke();
-        map.addImage('map-pin-green', canvas3);
-        console.log('✅ map-pin-green créé');
-      }
-      
-    } catch (error) {
-      console.error('❌ Erreur création images principales:', error);
-    }
-  };
-
-  // Ligne 25-30, ajouter des styles CSS personnalisés dans le head du document :
+  // ✅ USEEFFECT POUR LES STYLES CSS
   useEffect(() => {
-    // ✅ AJOUTER DES STYLES CSS POUR LA SCROLLBAR
     const style = document.createElement('style');
     style.textContent = `
-      /* Styles pour la scrollbar dans les popups */
       .sports-scroll::-webkit-scrollbar {
         width: 6px;
       }
@@ -564,16 +300,149 @@ export default function MapView() {
     };
   }, []);
 
+  if (errorEquipments) {
+    return <div>Error loading map data</div>;
+  }
+
+  if (loadingEquipments) {
+    return <LoadingSpinner />;
+  }
+
+  const onClick = (event) => {
+    const feature = event.features?.[0];
+    if (feature && feature.layer.id === 'unclustered-point') {
+      const equipmentId = feature.properties?.id || feature.id;
+      const longitude = feature.geometry.coordinates[0];
+      const latitude = feature.geometry.coordinates[1];
+      
+      console.log('🎯 Clic équipement:', { equipmentId, longitude, latitude });
+      
+      setShowFiltersPopup(false);
+      setShowSportsPopup(false);
+      setShowUnifiedPopup(false);
+      setShowNavigation(false);
+      
+      const isDesktop = window.innerWidth >= 1024;
+      
+      if (!isDesktop) {
+        let offset;
+        if (window.innerWidth <= 768) {
+          offset = 0.004;
+        } else {
+          offset = 0.015;
+        }
+        
+        setViewState(prevState => ({
+          ...prevState,
+          longitude: longitude,
+          latitude: latitude + offset,
+          transitionDuration: 600
+        }));
+      } else {
+        setViewState(prevState => ({
+          ...prevState,
+          longitude: longitude,
+          latitude: latitude,
+          transitionDuration: 400
+        }));
+      }
+      
+      setPopupInfoEquipment({
+        longitude: longitude,
+        latitude: latitude,
+        properties: {
+          ...feature.properties,
+          id: equipmentId
+        },
+        id: equipmentId,
+        geometry: feature.geometry
+      });
+    } else {
+      setShowUnifiedPopup(false);
+      setPopupInfoEquipment(null);
+      setShowMenu(false);
+      setShowNavigation(false);
+    }
+  };
+
+  const handleSearch = (searchTerm) => {
+    if (!searchTerm) {
+      setSearchSuggestions([]);
+      return;
+    }
+    if (searchTerm.length < 2) {
+      setSearchSuggestions([]);
+      return;
+    }
+
+    const normalizedSearchTerm = searchTerm.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const suggestions = sports.filter(sport =>
+      sport.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(normalizedSearchTerm)
+    );
+    setSearchSuggestions(suggestions);
+  };
+
+  const onMapLoad = (event) => {
+    const map = event.target;
+    setStyleLoaded(true);
+    
+    map.loadImage('/map-pinv9.png', (error, image) => {
+      if (error) {
+        console.error('❌ Erreur chargement /map-pinv9.png:', error);
+        return;
+      }
+      if (!map.hasImage('map-pin')) {
+        map.addImage('map-pin', image);
+        console.log('✅ map-pin chargé');
+      }
+    });
+
+    map.loadImage('/map-pin-active.png', (error, image) => {
+      if (error) {
+        console.error('❌ Erreur chargement /map-pin-active.png:', error);
+        return;
+      }
+      if (!map.hasImage('map-pin-active')) {
+        map.addImage('map-pin-active', image);
+        console.log('✅ map-pin-active chargé');
+      }
+    });
+  };
+
+  const getUnclusteredPointLayer = () => {
+    const selectedId = popupInfoEquipment?.properties?.id || popupInfoEquipment?.id;
+    
+    return {
+      ...unclusteredPointLayer,
+      layout: {
+        ...unclusteredPointLayer.layout,
+        'icon-image': [
+          'case',
+          ['==', ['get', 'id'], selectedId || ''],
+          'map-pin-active',
+          'map-pin'
+        ],
+        'icon-size': [
+          'case',
+          ['==', ['get', 'id'], selectedId || ''],
+          0.1,
+          0.3
+        ]
+      }
+    };
+  };
+
   return (
     <div style={{ 
       position: 'relative', 
       width: '100vw', 
       height: '100vh',
-      overflow: 'hidden', // ✅ EMPÊCHER LE SCROLL
+      overflow: 'hidden',
       margin: 0,
       padding: 0
     }}>
-      {/* Top Controls - TOUS À DROITE */}
+      {/* Top Controls */}
       <div style={{
         position: 'absolute',
         top: showNavigation ? '100px' : '20px',
@@ -583,7 +452,7 @@ export default function MapView() {
         zIndex: 49,
         transition: 'top 0.3s ease',
       }}>
-        {/* ✅ ICÔNE UNIFIÉE : SPORTS + FILTRES */}
+        {/* Icône unifiée */}
         <div 
           style={{
             backgroundColor: activeFilters.length > 0 || showFreeAccessOnly || showHandicapAccessOnly ? '#3b82f6' : 'white',
@@ -602,16 +471,12 @@ export default function MapView() {
             setPopupInfoEquipment(null);
             setShowMenu(false);
             setShowNavigation(false);
-            setShowUnifiedPopup(!showUnifiedPopup); // ✅ NOUVEAU STATE
+            setShowUnifiedPopup(!showUnifiedPopup);
           }}
         >
-          {/* Icône Sports */}
           <span style={{ fontSize: '18px' }}>⚽</span>
-          
-          {/* Icône Filtres */}
           <Filter size={18} />
           
-          {/* Badge de notification pour les filtres actifs */}
           {(activeFilters.length > 0 || showFreeAccessOnly || showHandicapAccessOnly) && (
             <div style={{
               position: 'absolute',
@@ -633,7 +498,7 @@ export default function MapView() {
           )}
         </div>
 
-        {/* Menu Button - reste inchangé */}
+        {/* Menu Button */}
         <div style={{
           backgroundColor: 'white',
           padding: '8px',
@@ -647,7 +512,7 @@ export default function MapView() {
         }}
         onClick={(e) => {
           e.stopPropagation();
-          setShowUnifiedPopup(false); // ✅ FERMER LA POPUP UNIFIÉE
+          setShowUnifiedPopup(false);
           setPopupInfoEquipment(null);
           setShowMenu(false);
           setShowNavigation(!showNavigation);
@@ -666,354 +531,6 @@ export default function MapView() {
         </div>
       </div>
 
-      {/* Filters Bottom Sheet */}
-      {showFiltersPopup && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            width: '100%',
-            height: '30%',
-            backgroundColor: 'white',
-            borderTopLeftRadius: '20px',
-            borderTopRightRadius: '20px',
-            boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
-            zIndex: 49,
-            padding: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '46px',
-          }}
-        >
-          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px 0' }}>
-            <div style={{ position: 'absolute', width: '100%', textAlign: 'center' }}>
-              <h3 style={{ margin: 0, fontWeight: 600, color: '#000000' }}>Filtres</h3>
-            </div>
-            <button
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                border: '1px solid #000000',
-                borderRadius: '10px',
-                background: 'white',
-                fontSize: '24px',
-                cursor: 'pointer',
-                padding: '4px 8px',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#000000',
-                boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)',
-                transition: 'box-shadow 0.2s ease',
-              }}
-              onClick={() => {
-                // ✅ FERMER SEULEMENT CE POPUP
-                setShowFiltersPopup(false);
-              }}
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Filter Options */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Free Access Filter */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 'bold', color: '#000000' }}>Libre accès</span>
-                <div 
-                  onClick={() => setShowFreeAccessOnly(!showFreeAccessOnly)} 
-                  style={{ 
-                    cursor: 'pointer',
-                    width: '60px',
-                    height: '24px',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #000000',
-                    borderRadius: '12px',
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0 8px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                  }}
-                >
-                  <span style={{ 
-                    fontSize: '10px', 
-                    fontWeight: 'bold',
-                    color: '#000000',
-                    position: 'absolute',
-                    left: showFreeAccessOnly ? '8px' : 'auto',
-                    right: showFreeAccessOnly ? 'auto' : '8px'
-                  }}>
-                    {showFreeAccessOnly ? 'On' : 'Off'}
-                  </span>
-                <div 
-                  style={{
-                    position: 'absolute',
-                    width: '20px',
-                    height: '20px',
-                    backgroundColor: showFreeAccessOnly ? '#3498db' : '#ff9f43',
-                    borderRadius: '50%',
-                    top: '1px',
-                    left: showFreeAccessOnly ? '37px' : '2px',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Separator Line */}
-            <div style={{ 
-              width: '100%', 
-              height: '1px', 
-              backgroundColor: '#E5E7EB',
-              margin: '0 auto'
-            }} />
-
-            {/* Handicap Access Filter */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontWeight: 'bold', color: '#000000' }}>Accès handicapé</span>
-                <svg 
-                  width="24" 
-                  height="24" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 8v8"/>
-                  <path d="M8 12h8"/>
-                </svg>
-              </div>
-              <div 
-                onClick={() => setShowHandicapAccessOnly(!showHandicapAccessOnly)} 
-                style={{ 
-                  cursor: 'pointer',
-                  width: '60px',
-                  height: '24px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #000000',
-                  borderRadius: '12px',
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0 8px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                }}
-              >
-                <span style={{ 
-                  fontSize: '10px',
-                  fontWeight: 'bold',
-                  color: '#000000',
-                  position: 'absolute',
-                  left: showHandicapAccessOnly ? '8px' : 'auto',
-                  right: showHandicapAccessOnly ? 'auto' : '8px'
-                }}>
-                  {showHandicapAccessOnly ? 'On' : 'Off'}
-                </span>
-                <div 
-                  style={{
-                    position: 'absolute',
-                    width: '20px',
-                    height: '20px',
-                    backgroundColor: showHandicapAccessOnly ? '#3498db' : '#ff9f43',
-                    borderRadius: '50%',
-                    top: '1px',
-                    left: showHandicapAccessOnly ? '37px' : '2px',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sports Selection Popup */}
-      {showSportsPopup && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            width: '100%',
-            height: activeFilters.length > 0 ? '40%' : '35%',
-            backgroundColor: 'white',
-            borderTopLeftRadius: '20px',
-            borderTopRightRadius: '20px',
-            boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
-            zIndex: 49,
-            padding: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px',
-          }}
-        >
-          {/* Header */}
-          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px 0' }}>
-            <div style={{ position: 'absolute', width: '100%', textAlign: 'center' }}>
-              <h3 style={{ margin: 0, fontWeight: 600, color: '#000000' }}>
-                Sports sélectionnés {activeFilters.length > 0 && `(${activeFilters.length})`}
-              </h3>
-            </div>
-            <button
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                border: '1px solid #000000',
-                borderRadius: '10px',
-                background: 'white',
-                fontSize: '24px',
-                cursor: 'pointer',
-                padding: '4px 8px',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#000000',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                transition: 'box-shadow 0.2s ease',
-              }}
-              onClick={() => {
-                // ✅ FERMER SEULEMENT CE POPUP
-                setShowSportsPopup(false);
-              }}
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Content */}
-          {activeFilters.length > 0 ? (
-            <>
-              {/* Clear All Button */}
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <button
-                  onClick={() => {
-                    setActiveFilters([]);
-                    setShowSportsPopup(false);
-                  }}
-                  style={{
-                    backgroundColor: '#ef4444',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
-                >
-                  🗑️ Tout effacer
-                </button>
-              </div>
-
-              {/* Sports List */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '12px',
-                maxHeight: '200px',
-                overflowY: 'auto',
-                padding: '8px',
-              }}>
-                {activeFilters.map((filter, index) => (
-                  <div key={index} style={{
-                    backgroundColor: '#f8fafc',
-                    border: '2px solid #e2e8f0',
-                    borderRadius: '12px',
-                    padding: '12px 16px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-                  }}>
-                    <div style={{ flex: 1 }}>
-                      <span style={{
-                        color: '#1e293b',
-                        fontWeight: '600',
-                        fontSize: '14px',
-                        lineHeight: '1.4',
-                      }}>
-                        {filter.length > 30 ? `${filter.substring(0, 30)}...` : filter}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => handleRemoveFilter(filter)}/* changement de logique de filtrage*/
-                      style={{
-                        backgroundColor: '#ef4444',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '24px',
-                        height: '24px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        marginLeft: '8px',
-                        transition: 'all 0.2s ease',
-                        boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = '#dc2626';
-                        e.target.style.transform = 'scale(1.1)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = '#ef4444';
-                        e.target.style.transform = 'scale(1)';
-                      }}
-                      title={`Supprimer "${filter}"`}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            /* Empty State */
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1,
-              textAlign: 'center',
-              color: '#6b7280',
-            }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
-              <h4 style={{ margin: 0, fontSize: '18px', color: '#374151' }}>
-                Aucun sport sélectionné
-              </h4>
-              <p style={{ margin: 0, fontSize: '14px' }}>
-                Utilisez la barre de recherche pour filtrer par sport
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Navigation Bar */}
       {showNavigation && (
         <div
@@ -1022,10 +539,10 @@ export default function MapView() {
             top: 0,
             left: 0,
             right: 0,
-            zIndex: 51, // Au-dessus de tout
+            zIndex: 51,
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           }}
-          onClick={(e) => e.stopPropagation()} // ✅ EMPÊCHER LA FERMETURE
+          onClick={(e) => e.stopPropagation()}
         >
           <Navigation />
         </div>
@@ -1035,7 +552,7 @@ export default function MapView() {
         style={{ 
           width: '100vw', 
           height: '100vh',
-          position: 'fixed', // ✅ FIXER LA CARTE
+          position: 'fixed',
           top: 0,
           left: 0,
           zIndex: 1
@@ -1049,14 +566,14 @@ export default function MapView() {
         onLoad={onMapLoad}
         onError={(e) => console.error('Map style loading error:', e)}
       >
-        {/* SearchBar Component repositionnée */}
+        {/* SearchBar */}
         <div style={{ 
           position: 'absolute', 
-          top: showNavigation ? '140px' : '80px', // ✅ PLUS BAS SI NAVIGATION VISIBLE
+          top: showNavigation ? '140px' : '80px',
           left: '20px',
           right: '20px',
           zIndex: 48,
-          transition: 'top 0.2s ease', // ✅ ANIMATION FLUIDE
+          transition: 'top 0.2s ease',
         }}>
           <SearchBar
             onSearch={handleSearch}
@@ -1066,11 +583,11 @@ export default function MapView() {
         </div>
 
         {/* Map Layers */}
-        {styleLoaded && (
+        {styleLoaded && filteredEquipments && (
           <Source
             id="equipments"
             type="geojson"
-            data={filteredEquipments || getFilteredFeatures()}
+            data={filteredEquipments}
             cluster={true}
             clusterMaxZoom={14}
             clusterRadius={35}
@@ -1082,7 +599,7 @@ export default function MapView() {
           </Source>
         )}
 
-        {/* ✅ DEBUG TEMPORAIRE */}
+        {/* Debug Info */}
         {styleLoaded && (
           <div style={{
             position: 'absolute',
@@ -1095,7 +612,7 @@ export default function MapView() {
             fontSize: '12px',
             zIndex: 1000
           }}>
-            Points: {(filteredEquipments || getFilteredFeatures())?.features?.length || 0}
+            Points: {filteredEquipments?.features?.length || 0}
             <br />
             Style: {styleLoaded ? '✅' : '❌'}
           </div>
@@ -1108,7 +625,7 @@ export default function MapView() {
         />
       </Map>
 
-      {/* ✅ POPUP UNIFIÉE : SPORTS + FILTRES */}
+      {/* Popup Unifiée */}
       {showUnifiedPopup && (
         <div
           style={{
@@ -1126,8 +643,7 @@ export default function MapView() {
             display: 'flex',
             flexDirection: 'column',
             gap: '20px',
-            // ✅ SUPPRIMER overflowY: 'auto' DU CONTENEUR PRINCIPAL
-            overflow: 'hidden', // ✅ CACHER LE SCROLL SUR LE CONTENEUR PRINCIPAL
+            overflow: 'hidden',
           }}
         >
           {/* Header */}
@@ -1164,7 +680,7 @@ export default function MapView() {
             </button>
           </div>
 
-          {/* ✅ SECTION 1: FILTRES D'ACCÈS */}
+          {/* Section 1: Filtres d'accès */}
           <div style={{ 
             backgroundColor: '#f8fafc',
             borderRadius: '12px',
@@ -1247,7 +763,7 @@ export default function MapView() {
             </div>
           </div>
 
-          {/* ✅ SECTION 2: SPORTS SÉLECTIONNÉS */}
+          {/* Section 2: Sports sélectionnés */}
           <div style={{ 
             backgroundColor: '#f0f9ff',
             borderRadius: '12px',
@@ -1290,8 +806,7 @@ export default function MapView() {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                 gap: '8px',
                 maxHeight: '150px',
-                overflowY: 'auto', // ✅ SCROLL SEULEMENT ICI QUAND IL Y A DES FILTRES
-                // ✅ AMÉLIORER LE STYLE DE LA SCROLLBAR
+                overflowY: 'auto',
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#cbd5e0 #f7fafc',
               }}>
@@ -1340,12 +855,10 @@ export default function MapView() {
                 ))}
               </div>
             ) : (
-              // ✅ ÉTAT VIDE SANS SCROLL
               <div style={{
                 textAlign: 'center',
                 color: '#6b7280',
                 padding: '20px',
-                // ✅ PAS DE SCROLL ICI
               }}>
                 <div style={{ fontSize: '32px', marginBottom: '8px' }}>🔍</div>
                 <p style={{ margin: 0, fontSize: '14px' }}>
@@ -1358,7 +871,7 @@ export default function MapView() {
             )}
           </div>
 
-          {/* ✅ SECTION 3: RÉSUMÉ DES FILTRES ACTIFS */}
+          {/* Section 3: Résumé */}
           {(activeFilters.length > 0 || showFreeAccessOnly || showHandicapAccessOnly) && (
             <div style={{ 
               backgroundColor: '#ecfdf5',
@@ -1371,7 +884,7 @@ export default function MapView() {
                 <span style={{ fontSize: '13px', fontWeight: '500', color: '#065f46' }}>
                   {(() => {
                     const totalFilters = activeFilters.length + (showFreeAccessOnly ? 1 : 0) + (showHandicapAccessOnly ? 1 : 0);
-                    const pointsCount = (filteredEquipments || getFilteredFeatures())?.features?.length || 0;
+                    const pointsCount = filteredEquipments?.features?.length || 0;
                     return `${totalFilters} filtre(s) actif(s) • ${pointsCount} équipement(s) affiché(s)`;
                   })()}
                 </span>
