@@ -89,7 +89,7 @@ export default function MapView() {
   const [showMenu, setShowMenu] = useState(false); // ✅ AJOUTER LE STATE MENU
   const [showNavigation, setShowNavigation] = useState(false); // ✅ NOUVEAU STATE POUR LA NAVIGATION
 
-  // ✅ DÉFINIR arraysEqual EN PREMIER
+  // ✅ DÉFINIR arraysEqual EN PREMIER (GARDER CETTE VERSION)
   const arraysEqual = (a, b) => {
     if (a.length !== b.length) return false;
     return a.every((val, index) => val === b[index]);
@@ -519,21 +519,6 @@ export default function MapView() {
     } catch (error) {
       console.error('❌ Erreur création images principales:', error);
     }
-  };
-
-  // Ligne 290-300, ajouter ce useEffect pour synchroniser filteredEquipments :
-  // ✅ METTRE À JOUR filteredEquipments QUAND LES FILTRES CHANGENT
-  useEffect(() => {
-    if (equipments) {
-      const filtered = getFilteredFeatures();
-      setFilteredEquipments(filtered);
-    }
-  }, [equipments, getFilteredFeatures]); // ✅ UTILISER getFilteredFeatures COMME DÉPENDANCE
-
-  // ✅ FONCTION UTILITAIRE POUR COMPARER LES ARRAYS
-  const arraysEqual = (a, b) => {
-    if (a.length !== b.length) return false;
-    return a.every((val, index) => val === b[index]);
   };
 
   return (
