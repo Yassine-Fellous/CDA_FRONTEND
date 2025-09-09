@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom'; // ✅ VÉRIFIER CET IMPORT
 import Map, { Source, Layer } from 'react-map-gl';
 import { ToggleLeft, ToggleRight, Filter } from 'lucide-react';
@@ -24,6 +24,53 @@ import { formatSports } from '@/utils/formatSports'; // ✅ AJOUTER CETTE LIGNE
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 export default function MapView() {
+  // ✅ GESTION D'ERREUR POUR ÉVITER LES CRASHES
+  const [hasError, setHasError] = useState(false);
+  
+  useEffect(() => {
+    const handleError = (error) => {
+      console.error('❌ Erreur dans MapView:', error);
+      setHasError(true);
+    };
+    
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleError);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleError);
+    };
+  }, []);
+
+  if (hasError) {
+    return (
+      <div style={{ 
+        height: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        flexDirection: 'column',
+        padding: '20px'
+      }}>
+        <h2>Erreur de chargement de la carte</h2>
+        <p>Veuillez rafraîchir la page</p>
+        <button 
+          onClick={() => window.location.reload()}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
+        >
+          Rafraîchir
+        </button>
+      </div>
+    );
+  }
+
   const [searchParams, setSearchParams] = useSearchParams(); // ✅ DESTRUCTURER CORRECTEMENT
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE);
   const [styleLoaded, setStyleLoaded] = useState(false);
@@ -42,7 +89,7 @@ export default function MapView() {
   const [showMenu, setShowMenu] = useState(false); // ✅ AJOUTER LE STATE MENU
   const [showNavigation, setShowNavigation] = useState(false); // ✅ NOUVEAU STATE POUR LA NAVIGATION
 
-  const handleSuggestionClick = (suggestion) => {
+  const handleSuggestionClick = useCallback((suggestion) => {
     console.log('🔍 Ajout du sport:', suggestion);
     
     setShowFiltersPopup(false);
@@ -54,24 +101,19 @@ export default function MapView() {
       const newFilters = [...activeFilters, suggestion];
       setActiveFilters(newFilters);
       
-      // ✅ UTILISER setSearchParams CORRECTEMENT
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.set('sports', newFilters.join(','));
-      newSearchParams.delete('sport'); // ✅ SUPPRIMER L'ANCIEN FORMAT SI PRÉSENT
+      newSearchParams.delete('sport');
       setSearchParams(newSearchParams, { replace: true });
-      
-      console.log('🔗 Sports dans l\'URL:', newFilters);
     }
     
     setSearchSuggestions([]);
-  };
+  }, [activeFilters, searchParams, setSearchParams]);
 
   useEffect(() => {
     // ✅ GÉRER LES DEUX FORMATS D'URL : 'sport' (ancien) ET 'sports' (nouveau)
-    const sportParam = searchParams.get('sport'); // Format ancien (singulier)
-    const sportsParam = searchParams.get('sports'); // Format nouveau (pluriel)
-    
-    console.log('🔗 Paramètres URL détectés:', { sportParam, sportsParam });
+    const sportParam = searchParams.get('sport');
+    const sportsParam = searchParams.get('sports');
     
     // Déterminer quels sports à filtrer
     let sportsToFilter = [];
@@ -84,41 +126,26 @@ export default function MapView() {
       sportsToFilter = [sportParam.trim()];
     }
     
-    console.log('🎯 Sports à filtrer depuis URL:', sportsToFilter);
-    
-    if (sportsToFilter.length > 0 && sports) {
-      console.log('🔗 Sports disponibles dans la liste:', sports.slice(0, 5), '...');
-      
-      // ✅ VÉRIFIER QUE TOUS LES SPORTS EXISTENT DANS LA LISTE
-      const validSports = sportsToFilter.filter(sport => {
-        const isValid = sports.includes(sport);
-        console.log(`🔍 Sport "${sport}" valide:`, isValid);
-        return isValid;
-      });
-      
-      console.log('✅ Sports valides trouvés:', validSports);
+    // ✅ ÉVITER LES MISES À JOUR INUTILES
+    if (sportsToFilter.length > 0 && sports && !arraysEqual(activeFilters, sportsToFilter)) {
+      const validSports = sportsToFilter.filter(sport => sports.includes(sport));
       
       if (validSports.length > 0) {
-        console.log('🎯 Application des filtres:', validSports);
         setActiveFilters(validSports);
         
-        // ✅ NETTOYER L'URL - CONVERTIR L'ANCIEN FORMAT VERS LE NOUVEAU
+        // ✅ NETTOYER L'URL SEULEMENT SI NÉCESSAIRE
         if (sportParam && !sportsParam) {
           const newSearchParams = new URLSearchParams(searchParams);
-          newSearchParams.delete('sport'); // Supprimer l'ancien paramètre
-          newSearchParams.set('sports', validSports.join(',')); // Ajouter le nouveau
+          newSearchParams.delete('sport');
+          newSearchParams.set('sports', validSports.join(','));
           setSearchParams(newSearchParams, { replace: true });
         }
-      } else {
-        console.warn('⚠️ Aucun sport valide trouvé dans la liste');
       }
-    } else if (sportsToFilter.length === 0) {
-      // ✅ SI AUCUN SPORT DANS L'URL, NETTOYER LES FILTRES
-      console.log('🧹 Nettoyage des filtres (aucun sport dans URL)');
+    } else if (sportsToFilter.length === 0 && activeFilters.length > 0) {
       setActiveFilters([]);
     }
 
-    // Handle URL parameters for shared equipment (reste inchangé)
+    // Handle URL parameters for shared equipment
     const equipmentId = searchParams.get('equipmentId');
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
@@ -126,7 +153,7 @@ export default function MapView() {
 
     if (equipmentId && lat && lng && equipments) {
       // Find the equipment in the data
-      const equipment = equipments.features.find(
+      const equipment = equipments.features?.find(
         feature => feature.properties.id === equipmentId
       );
 
@@ -139,15 +166,15 @@ export default function MapView() {
         });
 
         // Update the map view
-        setViewState({
-          ...viewState,
+        setViewState(prevState => ({
+          ...prevState,
           longitude: parseFloat(lng),
           latitude: parseFloat(lat),
           zoom: zoom ? parseFloat(zoom) : 18
-        });
+        }));
       }
     }
-  }, [searchParams, sports, equipments, setSearchParams]); // ✅ AJOUTER setSearchParams DANS LES DÉPENDANCES
+  }, [searchParams, sports, equipments]); // ✅ RETIRER setSearchParams ET activeFilters DES DÉPENDANCES
 
   // Ligne ~60-70, ajouter l'useEffect pour Escape :
   useEffect(() => {
@@ -271,29 +298,31 @@ export default function MapView() {
     setSearchSuggestions(suggestions);
   };
 
-  const handleRemoveFilter = (filterToRemove) => {
+  // Ligne 220-240, mémoriser handleRemoveFilter :
+  const handleRemoveFilter = useCallback((filterToRemove) => {
     console.log('🗑️ Suppression du filtre:', filterToRemove);
     
     const newFilters = activeFilters.filter(filter => filter !== filterToRemove);
     setActiveFilters(newFilters);
     
-    // ✅ UTILISER setSearchParams CORRECTEMENT
     const newSearchParams = new URLSearchParams(searchParams);
     
     if (newFilters.length > 0) {
-      // S'il reste des filtres, mettre à jour l'URL
       newSearchParams.set('sports', newFilters.join(','));
     } else {
-      // S'il n'y a plus de filtres, supprimer le paramètre
       newSearchParams.delete('sports');
-      newSearchParams.delete('sport'); // ✅ SUPPRIMER AUSSI L'ANCIEN FORMAT
+      newSearchParams.delete('sport');
     }
     
     setSearchParams(newSearchParams, { replace: true });
-    console.log('🔗 URL mise à jour, sports restants:', newFilters);
-  };
+  }, [activeFilters, searchParams, setSearchParams]);
 
-  const getFilteredFeatures = () => {
+  // Ligne 240-280, remplacer getFilteredFeatures par une version mémorisée :
+  const getFilteredFeatures = useCallback(() => {
+    if (!equipments?.features) {
+      return { type: 'FeatureCollection', features: [] };
+    }
+
     let features = equipments.features;
     
     // Apply active filters
@@ -324,11 +353,6 @@ export default function MapView() {
         
         return hasMatch;
       });
-      
-      // ✅ RÉDUIRE LES LOGS - SEULEMENT SI NÉCESSAIRE
-      if (features.length !== equipments.features.length) {
-        console.log(`🔍 ${features.length}/${equipments.features.length} équipements après filtrage`);
-      }
     }
 
     // Apply free access filter
@@ -348,10 +372,10 @@ export default function MapView() {
     }
 
     return {
-      ...equipments,
+      type: 'FeatureCollection',
       features: features
     };
-  };
+  }, [equipments, activeFilters, showFreeAccessOnly, showHandicapAccessOnly]); // ✅ DÉPENDANCES EXPLICITES
 
   // Add this function to handle map load
   const onMapLoad = (event) => {
@@ -463,7 +487,7 @@ export default function MapView() {
         const canvas2 = document.createElement('canvas');
         const ctx2 = canvas2.getContext('2d');
         canvas2.width = 30;
-        canvas2.height = 30; // ✅ CORRIGER: était ctx2.height = 30
+        ctx2.height = 30; // ✅ CORRIGER: était ctx2.height = 30
         ctx2.beginPath();
         ctx2.arc(15, 15, 12, 0, 2 * Math.PI);
         ctx2.fillStyle = '#e74c3c';
@@ -502,10 +526,15 @@ export default function MapView() {
   useEffect(() => {
     if (equipments) {
       const filtered = getFilteredFeatures();
-      console.log('🔄 Mise à jour filteredEquipments:', filtered.features.length, 'équipements');
       setFilteredEquipments(filtered);
     }
-  }, [equipments, activeFilters, showFreeAccessOnly, showHandicapAccessOnly]);
+  }, [equipments, getFilteredFeatures]); // ✅ UTILISER getFilteredFeatures COMME DÉPENDANCE
+
+  // ✅ FONCTION UTILITAIRE POUR COMPARER LES ARRAYS
+  const arraysEqual = (a, b) => {
+    if (a.length !== b.length) return false;
+    return a.every((val, index) => val === b[index]);
+  };
 
   return (
     <div style={{ 
