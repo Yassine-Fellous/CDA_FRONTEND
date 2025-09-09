@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom'; // ✅ VÉRIFIER CET IMPORT
 import Map, { Source, Layer } from 'react-map-gl';
 import { ToggleLeft, ToggleRight, Filter } from 'lucide-react';
@@ -90,12 +90,13 @@ export default function MapView() {
   const [showNavigation, setShowNavigation] = useState(false); // ✅ NOUVEAU STATE POUR LA NAVIGATION
 
   // ✅ DÉFINIR arraysEqual EN PREMIER
-  const arraysEqual = useCallback((a, b) => {
+  const arraysEqual = (a, b) => {
     if (a.length !== b.length) return false;
     return a.every((val, index) => val === b[index]);
-  }, []);
+  };
 
-  const handleSuggestionClick = useCallback((suggestion) => {
+  // ✅ FONCTION SIMPLE SANS useCallback
+  const handleSuggestionClick = (suggestion) => {
     console.log('🔍 Ajout du sport:', suggestion);
     
     setShowFiltersPopup(false);
@@ -114,7 +115,7 @@ export default function MapView() {
     }
     
     setSearchSuggestions([]);
-  }, [activeFilters, searchParams, setSearchParams]);
+  };
 
   // ✅ MAINTENANT useEffect peut utiliser arraysEqual
   useEffect(() => {
@@ -129,8 +130,11 @@ export default function MapView() {
       sportsToFilter = [sportParam.trim()];
     }
     
-    // ✅ MAINTENANT arraysEqual EST DÉFINI
-    if (sportsToFilter.length > 0 && sports && !arraysEqual(activeFilters, sportsToFilter)) {
+    // ✅ SIMPLIFIER LA COMPARAISON
+    const currentFiltersString = activeFilters.sort().join(',');
+    const newFiltersString = sportsToFilter.sort().join(',');
+    
+    if (sportsToFilter.length > 0 && sports && currentFiltersString !== newFiltersString) {
       const validSports = sportsToFilter.filter(sport => sports.includes(sport));
       
       if (validSports.length > 0) {
@@ -147,7 +151,7 @@ export default function MapView() {
       setActiveFilters([]);
     }
 
-    // Handle URL parameters for shared equipment
+    // Handle URL parameters for shared equipment (reste inchangé)
     const equipmentId = searchParams.get('equipmentId');
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
@@ -173,7 +177,7 @@ export default function MapView() {
         }));
       }
     }
-  }, [searchParams, sports, equipments, arraysEqual, activeFilters]); // ✅ AJOUTER arraysEqual ET activeFilters
+  }, [searchParams, sports, equipments]); // ✅ SUPPRIMER activeFilters DES DÉPENDANCES
 
   // Ligne ~60-70, ajouter l'useEffect pour Escape :
   useEffect(() => {
@@ -297,8 +301,8 @@ export default function MapView() {
     setSearchSuggestions(suggestions);
   };
 
-  // Ligne 220-240, mémoriser handleRemoveFilter :
-  const handleRemoveFilter = useCallback((filterToRemove) => {
+  // ✅ FONCTION SIMPLE SANS useCallback
+  const handleRemoveFilter = (filterToRemove) => {
     console.log('🗑️ Suppression du filtre:', filterToRemove);
     
     const newFilters = activeFilters.filter(filter => filter !== filterToRemove);
@@ -314,17 +318,16 @@ export default function MapView() {
     }
     
     setSearchParams(newSearchParams, { replace: true });
-  }, [activeFilters, searchParams, setSearchParams]);
+  };
 
-  // Ligne 240-280, remplacer getFilteredFeatures par une version mémorisée :
-  const getFilteredFeatures = useCallback(() => {
+  // ✅ FONCTION SIMPLE SANS useCallback
+  const getFilteredFeatures = () => {
     if (!equipments?.features) {
       return { type: 'FeatureCollection', features: [] };
     }
 
     let features = equipments.features;
     
-    // Apply active filters
     if (activeFilters.length > 0) {
       features = features.filter(feature => {
         const sportsProperty = feature.properties.sports;
@@ -354,7 +357,6 @@ export default function MapView() {
       });
     }
 
-    // Apply free access filter
     if (showFreeAccessOnly) {
       features = features.filter(feature => {
         const freeAccess = feature.properties.free_access;
@@ -362,7 +364,6 @@ export default function MapView() {
       });
     }
 
-    // Apply handicap access filter
     if (showHandicapAccessOnly) {
       features = features.filter(feature => {
         const handicapAccess = feature.properties.inst_acc_handi_bool;
@@ -374,7 +375,7 @@ export default function MapView() {
       type: 'FeatureCollection',
       features: features
     };
-  }, [equipments, activeFilters, showFreeAccessOnly, showHandicapAccessOnly]); // ✅ DÉPENDANCES EXPLICITES
+  };
 
   // Add this function to handle map load
   const onMapLoad = (event) => {
