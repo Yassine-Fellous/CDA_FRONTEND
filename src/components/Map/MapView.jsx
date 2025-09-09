@@ -533,6 +533,37 @@ export default function MapView() {
     }
   };
 
+  // Ligne 25-30, ajouter des styles CSS personnalisés dans le head du document :
+  useEffect(() => {
+    // ✅ AJOUTER DES STYLES CSS POUR LA SCROLLBAR
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Styles pour la scrollbar dans les popups */
+      .sports-scroll::-webkit-scrollbar {
+        width: 6px;
+      }
+      
+      .sports-scroll::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 3px;
+      }
+      
+      .sports-scroll::-webkit-scrollbar-thumb {
+        background: #cbd5e0;
+        border-radius: 3px;
+      }
+      
+      .sports-scroll::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   return (
     <div style={{ 
       position: 'relative', 
@@ -1095,7 +1126,8 @@ export default function MapView() {
             display: 'flex',
             flexDirection: 'column',
             gap: '20px',
-            overflowY: 'auto',
+            // ✅ SUPPRIMER overflowY: 'auto' DU CONTENEUR PRINCIPAL
+            overflow: 'hidden', // ✅ CACHER LE SCROLL SUR LE CONTENEUR PRINCIPAL
           }}
         >
           {/* Header */}
@@ -1258,7 +1290,10 @@ export default function MapView() {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                 gap: '8px',
                 maxHeight: '150px',
-                overflowY: 'auto',
+                overflowY: 'auto', // ✅ SCROLL SEULEMENT ICI QUAND IL Y A DES FILTRES
+                // ✅ AMÉLIORER LE STYLE DE LA SCROLLBAR
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#cbd5e0 #f7fafc',
               }}>
                 {activeFilters.map((filter, index) => (
                   <div key={index} style={{
@@ -1305,10 +1340,12 @@ export default function MapView() {
                 ))}
               </div>
             ) : (
+              // ✅ ÉTAT VIDE SANS SCROLL
               <div style={{
                 textAlign: 'center',
                 color: '#6b7280',
                 padding: '20px',
+                // ✅ PAS DE SCROLL ICI
               }}>
                 <div style={{ fontSize: '32px', marginBottom: '8px' }}>🔍</div>
                 <p style={{ margin: 0, fontSize: '14px' }}>
