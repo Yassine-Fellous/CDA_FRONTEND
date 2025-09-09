@@ -96,8 +96,13 @@ const ReportPage = () => {
     // Handle image upload
     const handleImageUpload = (event) => {
         const files = Array.from(event.target.files);
-        const maxSize = 5 * 1024 * 1024; // 5MB par fichier
-        const maxFiles = 3; // Limité à 3 images
+        
+        console.log('📸 Fichiers sélectionnés:', files.length);
+        
+        if (files.length === 0) return;
+
+        const maxSize = 5 * 1024 * 1024;
+        const maxFiles = 3;
 
         if (formData.images.length + files.length > maxFiles) {
             setErrors(prev => ({ ...prev, images: `Maximum ${maxFiles} images autorisées` }));
@@ -122,8 +127,9 @@ const ReportPage = () => {
                 setFormData(prev => ({
                     ...prev,
                     images: [...prev.images, {
-                        file,
-                        preview: e.target.result,
+                        // ✅ STRUCTURE CORRECTE POUR CLOUDINARY
+                        file: file, // Le vrai fichier File
+                        preview: e.target.result, // Pour l'affichage
                         id: Date.now() + Math.random()
                     }]
                 }));
@@ -638,6 +644,55 @@ const ReportPage = () => {
                                             Continuer vers la connexion
                                         </>
                                     )}
+                                </button>
+                            </div>
+
+                            {/* 🧪 BOUTON DEBUG CLOUDINARY */}
+                            <div className="mb-4 p-4 bg-blue-100 border border-blue-400 rounded-lg">
+                                <h4 className="text-sm font-medium text-blue-800 mb-2">🧪 Debug Cloudinary</h4>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        console.log('🔍 Variables d\'environnement:');
+                                        console.log('CLOUD_NAME:', import.meta.env.VITE_CLOUDINARY_CLOUD_NAME);
+                                        console.log('UPLOAD_PRESET:', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+                                        console.log('API_KEY:', import.meta.env.VITE_CLOUDINARY_API_KEY);
+                                        
+                                        try {
+                                            const { default: cloudinaryService } = await import('../services/api/cloudinary.js');
+                                            console.log('📋 Config service:', cloudinaryService.getDebugInfo());
+                                            
+                                            // Test avec image minimale
+                                            const canvas = document.createElement('canvas');
+                                            canvas.width = 100;
+                                            canvas.height = 100;
+                                            const ctx = canvas.getContext('2d');
+                                            ctx.fillStyle = '#ff0000';
+                                            ctx.fillRect(0, 0, 100, 100);
+                                            
+                                            canvas.toBlob(async (blob) => {
+                                                const testFile = {
+                                                    file: new File([blob], 'test.png', { type: 'image/png' })
+                                                };
+                                                
+                                                console.log('📤 Test upload direct...');
+                                                try {
+                                                    const result = await cloudinaryService.uploadImage(testFile);
+                                                    console.log('✅ Upload réussi:', result);
+                                                    alert('✅ Test Cloudinary réussi ! URL: ' + result.url);
+                                                } catch (error) {
+                                                    console.error('❌ Erreur upload:', error);
+                                                    alert('❌ Erreur: ' + error.message);
+                                                }
+                                            });
+                                        } catch (error) {
+                                            console.error('❌ Erreur service:', error);
+                                            alert('❌ Erreur service: ' + error.message);
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                >
+                                    Test Cloudinary Direct
                                 </button>
                             </div>
                         </form>

@@ -1,20 +1,31 @@
-// ✅ CONFIGURATION CLOUDINARY AVEC VARIABLES D'ENVIRONNEMENT
+// ✅ CONFIGURATION CLOUDINARY AVEC FALLBACK ROBUSTE
 const CLOUDINARY_CONFIG = {
-  cloud_name: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
-  api_key: import.meta.env.VITE_CLOUDINARY_API_KEY,
-  upload_preset: import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET,
+  cloud_name: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dzpsl9lfc',
+  api_key: import.meta.env.VITE_CLOUDINARY_API_KEY || '414829747788521',
+  upload_preset: import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'sportmap-reports-unsigned',
 };
 
 class CloudinaryService {
   constructor() {
     this.baseUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloud_name}`;
     
-    // ✅ VALIDATION DE LA CONFIGURATION AU DÉMARRAGE
+    // ✅ VALIDATION AMÉLIORÉE
     this.validateConfig();
   }
 
-  // ✅ VALIDER LA CONFIGURATION
+  // ✅ VALIDATION AMÉLIORÉE AVEC DEBUG
   validateConfig() {
+    console.log('🔍 Validation configuration Cloudinary...');
+    console.log('📋 Variables d\'environnement détectées:');
+    console.log('  - VITE_CLOUDINARY_CLOUD_NAME:', import.meta.env.VITE_CLOUDINARY_CLOUD_NAME);
+    console.log('  - VITE_CLOUDINARY_UPLOAD_PRESET:', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+    console.log('  - VITE_CLOUDINARY_API_KEY:', import.meta.env.VITE_CLOUDINARY_API_KEY ? '***masqué***' : 'MANQUANT');
+    
+    console.log('📋 Configuration finale:');
+    console.log('  - Cloud name:', CLOUDINARY_CONFIG.cloud_name);
+    console.log('  - Upload preset:', CLOUDINARY_CONFIG.upload_preset);
+    console.log('  - API key:', CLOUDINARY_CONFIG.api_key ? `${CLOUDINARY_CONFIG.api_key.slice(0, 6)}...` : 'MANQUANT');
+    
     const requiredFields = ['cloud_name', 'upload_preset'];
     const missing = requiredFields.filter(field => !CLOUDINARY_CONFIG[field]);
     
@@ -24,19 +35,26 @@ class CloudinaryService {
     }
     
     console.log('✅ Configuration Cloudinary validée');
-    console.log('🌐 Cloud name:', CLOUDINARY_CONFIG.cloud_name);
+    console.log('🌐 URL base:', this.baseUrl);
   }
 
-  // ✅ UPLOAD D'UNE IMAGE (API REST UNIQUEMENT)
+  // ✅ UPLOAD AVEC PLUS DE DEBUG
   async uploadImage(file) {
     try {
+      console.log('📤 === DÉBUT UPLOAD CLOUDINARY ===');
+      console.log('📋 Fichier reçu:', {
+        name: file.file?.name,
+        size: file.file?.size,
+        type: file.file?.type
+      });
+
       // ✅ VALIDATION DU FICHIER
       if (!file || !file.file) {
-        throw new Error('Fichier invalide');
+        throw new Error('Fichier invalide - structure attendue: { file: File }');
       }
 
       // ✅ VALIDATION TAILLE ET TYPE
-      if (file.file.size > 5 * 1024 * 1024) { // 5MB max
+      if (file.file.size > 5 * 1024 * 1024) {
         throw new Error(`Fichier trop volumineux: ${(file.file.size / 1024 / 1024).toFixed(1)}MB (max 5MB)`);
       }
 
@@ -45,53 +63,41 @@ class CloudinaryService {
         throw new Error(`Type de fichier non supporté: ${file.file.type}`);
       }
 
+      console.log('✅ Validation fichier OK');
+
       const formData = new FormData();
       formData.append('file', file.file);
       formData.append('upload_preset', CLOUDINARY_CONFIG.upload_preset);
-      
-      // ✅ ORGANISATION ET SÉCURITÉ
       formData.append('folder', 'sportmap/reports');
-      formData.append('resource_type', 'image');
-      formData.append('quality', 'auto:good');
-      formData.append('fetch_format', 'auto');
       
-      // ✅ TRANSFORMATIONS DE SÉCURITÉ
-      formData.append('transformation', JSON.stringify([
-        { quality: 'auto:good' }, // Optimisation qualité
-        { fetch_format: 'auto' }, // Format optimal (WebP, etc.)
-        { width: 1200, height: 1200, crop: 'limit' }, // Limiter la taille
-        { flags: 'strip_profile' }, // Supprimer métadonnées EXIF (privacy)
-        { 
-          overlay: { 
-            text: "SportMap", 
-            font_family: "Arial", 
-            font_size: 20, 
-            color: "white",
-            opacity: 50 
-          },
-          gravity: "south_east" 
-        } // Watermark léger
-      ]));
-
-      // ✅ TAGS POUR L'ORGANISATION
-      formData.append('tags', 'sportmap,report,user-upload');
-
-      console.log('📤 Upload vers Cloudinary...');
+      console.log('📋 FormData préparé:');
+      console.log('  - Upload preset:', CLOUDINARY_CONFIG.upload_preset);
+      console.log('  - Folder:', 'sportmap/reports');
+      console.log('  - URL endpoint:', `${this.baseUrl}/image/upload`);
 
       const response = await fetch(`${this.baseUrl}/image/upload`, {
         method: 'POST',
         body: formData,
       });
 
+      console.log('📥 Réponse HTTP:', response.status, response.statusText);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ Erreur Cloudinary:', errorData);
-        throw new Error(errorData.error?.message || `Erreur upload: ${response.status}`);
+        const responseText = await response.text();
+        console.error('❌ Erreur HTTP Cloudinary:', response.status);
+        console.error('❌ Réponse complète:', responseText);
+        
+        try {
+          const errorData = JSON.parse(responseText);
+          throw new Error(errorData.error?.message || `Erreur HTTP ${response.status}`);
+        } catch (parseError) {
+          throw new Error(`Erreur HTTP ${response.status}: ${responseText}`);
+        }
       }
 
       const data = await response.json();
-      
-      console.log('✅ Image uploadée:', data.secure_url);
+      console.log('✅ Upload réussi:', data.secure_url);
+      console.log('📤 === FIN UPLOAD CLOUDINARY ===');
 
       return {
         url: data.secure_url,
@@ -101,14 +107,12 @@ class CloudinaryService {
         format: data.format,
         size: data.bytes,
         created_at: data.created_at,
-        // ✅ URLs OPTIMISÉES DIRECTES
-        thumbnail_url: this.generateOptimizedUrl(data.public_id, { w: 200, h: 150, c: 'fill', q: 'auto:low' }),
-        medium_url: this.generateOptimizedUrl(data.public_id, { w: 600, h: 400, c: 'fill', q: 'auto:good' }),
-        large_url: this.generateOptimizedUrl(data.public_id, { w: 1200, h: 900, c: 'limit', q: 'auto:best' })
       };
 
     } catch (error) {
-      console.error('❌ Erreur upload Cloudinary:', error);
+      console.error('❌ === ERREUR UPLOAD CLOUDINARY ===');
+      console.error('❌ Message:', error.message);
+      console.error('❌ Stack:', error.stack);
       throw new Error(`Erreur upload: ${error.message}`);
     }
   }
