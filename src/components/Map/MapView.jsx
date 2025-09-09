@@ -88,6 +88,7 @@ export default function MapView() {
   const [showSportsPopup, setShowSportsPopup] = useState(false); // ✅ AJOUTER CETTE LIGNE
   const [showMenu, setShowMenu] = useState(false); // ✅ AJOUTER LE STATE MENU
   const [showNavigation, setShowNavigation] = useState(false); // ✅ NOUVEAU STATE POUR LA NAVIGATION
+  const [showUnifiedPopup, setShowUnifiedPopup] = useState(false); // ✅ NOUVEAU STATE POUR LA POPUP UNIFIÉE
 
   // ✅ DÉFINIR arraysEqual EN PREMIER (GARDER CETTE VERSION)
   const arraysEqual = (a, b) => {
@@ -189,6 +190,7 @@ export default function MapView() {
         setPopupInfoEquipment(null);
         setShowMenu(false);
         setShowNavigation(false); // ✅ FERMER LA NAVIGATION AUSSI
+        setShowUnifiedPopup(false); // ✅ AJOUTER CETTE LIGNE
       }
     };
 
@@ -198,6 +200,16 @@ export default function MapView() {
       document.removeEventListener('keydown', handleEscapeKey);
     };
   }, []);
+
+  // Ligne 375-385, ajouter l'useEffect pour synchroniser filteredEquipments :
+
+  // ✅ METTRE À JOUR filteredEquipments QUAND LES FILTRES CHANGENT
+  useEffect(() => {
+    if (equipments) {
+      const filtered = getFilteredFeatures();
+      setFilteredEquipments(filtered);
+    }
+  }, [equipments, activeFilters, showFreeAccessOnly, showHandicapAccessOnly]);
 
   if (errorEquipments) {
     return <div>Error loading map data</div>;
@@ -219,7 +231,8 @@ export default function MapView() {
       // ✅ FERMER TOUS LES POPUPS ET LA NAVIGATION AVANT D'OUVRIR LE POPUP ÉQUIPEMENT
       setShowFiltersPopup(false);
       setShowSportsPopup(false);
-      setShowNavigation(false); // ✅ AJOUTER CETTE LIGNE
+      setShowUnifiedPopup(false); // ✅ FERMER LA POPUP UNIFIÉE AUSSI
+      setShowNavigation(false);
       
       // ✅ DÉTECTER SI ON EST SUR DESKTOP
       const isDesktop = window.innerWidth >= 1024;
@@ -270,11 +283,10 @@ export default function MapView() {
       });
     } else {
       // ✅ CLIC SUR LA CARTE (PAS SUR UN ÉQUIPEMENT) - FERMER TOUS LES POPUPS
-      setShowFiltersPopup(false);
-      setShowSportsPopup(false);
+      setShowUnifiedPopup(false);
       setPopupInfoEquipment(null);
       setShowMenu(false);
-      setShowNavigation(false); // ✅ DÉJÀ PRÉSENT
+      setShowNavigation(false);
       console.log('🔍 Navigation fermée via clic carte');
     }
   };
@@ -533,78 +545,64 @@ export default function MapView() {
       {/* Top Controls - TOUS À DROITE */}
       <div style={{
         position: 'absolute',
-        top: showNavigation ? '100px' : '20px', // ✅ AJUSTER SELON LA HAUTEUR NAVIGATION
+        top: showNavigation ? '100px' : '20px',
         right: '20px',
         display: 'flex',
         gap: '8px',
         zIndex: 49,
-        transition: 'top 0.3s ease', // ✅ ANIMATION PLUS FLUIDE
+        transition: 'top 0.3s ease',
       }}>
-        {/* Sports Button */}
+        {/* ✅ ICÔNE UNIFIÉE : SPORTS + FILTRES */}
         <div 
           style={{
-            backgroundColor: activeFilters.length > 0 ? '#3b82f6' : 'white',
-            color: activeFilters.length > 0 ? 'white' : 'black',
-            padding: '8px',
+            backgroundColor: activeFilters.length > 0 || showFreeAccessOnly || showHandicapAccessOnly ? '#3b82f6' : 'white',
+            color: activeFilters.length > 0 || showFreeAccessOnly || showHandicapAccessOnly ? 'white' : 'black',
+            padding: '8px 12px',
             borderRadius: '8px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             cursor: 'pointer',
             position: 'relative',
             transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
           }}
           onClick={() => {
-            setShowFiltersPopup(false);
             setPopupInfoEquipment(null);
             setShowMenu(false);
-            setShowNavigation(false); // ✅ FERMER LA NAVIGATION
-            setShowSportsPopup(!showSportsPopup);
+            setShowNavigation(false);
+            setShowUnifiedPopup(!showUnifiedPopup); // ✅ NOUVEAU STATE
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontSize: '20px' }}>⚽</span>
-            {activeFilters.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '-8px',
-                right: '-8px',
-                backgroundColor: '#ef4444',
-                color: 'white',
-                borderRadius: '50%',
-                width: '20px',
-                height: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-                fontWeight: 'bold',
-              }}>
-                {activeFilters.length}
-              </div>
-            )}
-          </div>
+          {/* Icône Sports */}
+          <span style={{ fontSize: '18px' }}>⚽</span>
+          
+          {/* Icône Filtres */}
+          <Filter size={18} />
+          
+          {/* Badge de notification pour les filtres actifs */}
+          {(activeFilters.length > 0 || showFreeAccessOnly || showHandicapAccessOnly) && (
+            <div style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              backgroundColor: '#ef4444',
+              color: 'white',
+              borderRadius: '50%',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '10px',
+              fontWeight: 'bold',
+            }}>
+              {activeFilters.length + (showFreeAccessOnly ? 1 : 0) + (showHandicapAccessOnly ? 1 : 0)}
+            </div>
+          )}
         </div>
 
-        {/* Filter Button */}
-        <div 
-          style={{
-            backgroundColor: 'white',
-            padding: '8px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            cursor: 'pointer',
-          }}
-          onClick={() => {
-            setShowSportsPopup(false);
-            setPopupInfoEquipment(null);
-            setShowMenu(false);
-            setShowNavigation(false); // ✅ FERMER LA NAVIGATION
-            setShowFiltersPopup(!showFiltersPopup); // ✅ TOGGLE AU LIEU DE TRUE
-          }}
-        >
-          <Filter size={24} color="black" />
-        </div>
-
-        {/* Menu Button - MAINTENANT À DROITE */}
+        {/* Menu Button - reste inchangé */}
         <div style={{
           backgroundColor: 'white',
           padding: '8px',
@@ -618,14 +616,10 @@ export default function MapView() {
         }}
         onClick={(e) => {
           e.stopPropagation();
-          console.log('🔍 Clic sur menu, état actuel:', showNavigation);
-          // ✅ FERMER LES AUTRES POPUPS ET TOGGLE LA NAVIGATION
-          setShowFiltersPopup(false);
-          setShowSportsPopup(false);
+          setShowUnifiedPopup(false); // ✅ FERMER LA POPUP UNIFIÉE
           setPopupInfoEquipment(null);
           setShowMenu(false);
-          setShowNavigation(!showNavigation); // ✅ TOGGLE LA NAVIGATION
-          console.log('🔍 Nouveau état navigation:', !showNavigation);
+          setShowNavigation(!showNavigation);
         }}
         >
           <div style={{
@@ -1082,6 +1076,273 @@ export default function MapView() {
           onClose={() => setPopupInfoEquipment(null)}
         />
       </Map>
+
+      {/* ✅ POPUP UNIFIÉE : SPORTS + FILTRES */}
+      {showUnifiedPopup && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            width: '100%',
+            height: activeFilters.length > 0 ? '55%' : '45%',
+            backgroundColor: 'white',
+            borderTopLeftRadius: '20px',
+            borderTopRightRadius: '20px',
+            boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
+            zIndex: 49,
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            overflowY: 'auto',
+          }}
+        >
+          {/* Header */}
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px 0' }}>
+            <div style={{ position: 'absolute', width: '100%', textAlign: 'center' }}>
+              <h3 style={{ margin: 0, fontWeight: 600, color: '#000000' }}>
+                Sports & Filtres
+              </h3>
+            </div>
+            <button
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                border: '1px solid #000000',
+                borderRadius: '10px',
+                background: 'white',
+                fontSize: '24px',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#000000',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                transition: 'box-shadow 0.2s ease',
+              }}
+              onClick={() => setShowUnifiedPopup(false)}
+            >
+              ×
+            </button>
+          </div>
+
+          {/* ✅ SECTION 1: FILTRES D'ACCÈS */}
+          <div style={{ 
+            backgroundColor: '#f8fafc',
+            borderRadius: '12px',
+            padding: '16px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <h4 style={{ margin: '0 0 16px 0', fontWeight: 600, color: '#000000', fontSize: '16px' }}>
+              Filtres d'accès
+            </h4>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Free Access Filter */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: '500', color: '#000000', fontSize: '14px' }}>Libre accès</span>
+                <div 
+                  onClick={() => setShowFreeAccessOnly(!showFreeAccessOnly)} 
+                  style={{ 
+                    cursor: 'pointer',
+                    width: '50px',
+                    height: '20px',
+                    backgroundColor: showFreeAccessOnly ? '#3b82f6' : '#e5e7eb',
+                    borderRadius: '10px',
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      width: '16px',
+                      height: '16px',
+                      backgroundColor: 'white',
+                      borderRadius: '50%',
+                      top: '2px',
+                      left: showFreeAccessOnly ? '32px' : '2px',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Handicap Access Filter */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontWeight: '500', color: '#000000', fontSize: '14px' }}>Accès handicapé</span>
+                  <span style={{ fontSize: '16px' }}>♿</span>
+                </div>
+                <div 
+                  onClick={() => setShowHandicapAccessOnly(!showHandicapAccessOnly)} 
+                  style={{ 
+                    cursor: 'pointer',
+                    width: '50px',
+                    height: '20px',
+                    backgroundColor: showHandicapAccessOnly ? '#3b82f6' : '#e5e7eb',
+                    borderRadius: '10px',
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      width: '16px',
+                      height: '16px',
+                      backgroundColor: 'white',
+                      borderRadius: '50%',
+                      top: '2px',
+                      left: showHandicapAccessOnly ? '32px' : '2px',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ✅ SECTION 2: SPORTS SÉLECTIONNÉS */}
+          <div style={{ 
+            backgroundColor: '#f0f9ff',
+            borderRadius: '12px',
+            padding: '16px',
+            border: '1px solid #bae6fd'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h4 style={{ margin: 0, fontWeight: 600, color: '#000000', fontSize: '16px' }}>
+                Sports sélectionnés ({activeFilters.length})
+              </h4>
+              {activeFilters.length > 0 && (
+                <button
+                  onClick={() => {
+                    setActiveFilters([]);
+                    const newSearchParams = new URLSearchParams(searchParams);
+                    newSearchParams.delete('sports');
+                    newSearchParams.delete('sport');
+                    setSearchParams(newSearchParams, { replace: true });
+                  }}
+                  style={{
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  🗑️ Tout effacer
+                </button>
+              )}
+            </div>
+
+            {activeFilters.length > 0 ? (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '8px',
+                maxHeight: '150px',
+                overflowY: 'auto',
+              }}>
+                {activeFilters.map((filter, index) => (
+                  <div key={index} style={{
+                    backgroundColor: 'white',
+                    border: '1px solid #bae6fd',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    transition: 'all 0.2s ease',
+                  }}>
+                    <span style={{
+                      color: '#1e293b',
+                      fontWeight: '500',
+                      fontSize: '13px',
+                      flex: 1,
+                      marginRight: '8px',
+                    }}>
+                      {filter.length > 25 ? `${filter.substring(0, 25)}...` : filter}
+                    </span>
+                    <button
+                      onClick={() => handleRemoveFilter(filter)}
+                      style={{
+                        backgroundColor: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '20px',
+                        height: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        transition: 'all 0.2s ease',
+                      }}
+                      title={`Supprimer "${filter}"`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                color: '#6b7280',
+                padding: '20px',
+              }}>
+                <div style={{ fontSize: '32px', marginBottom: '8px' }}>🔍</div>
+                <p style={{ margin: 0, fontSize: '14px' }}>
+                  Aucun sport sélectionné
+                </p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>
+                  Utilisez la barre de recherche pour filtrer par sport
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* ✅ SECTION 3: RÉSUMÉ DES FILTRES ACTIFS */}
+          {(activeFilters.length > 0 || showFreeAccessOnly || showHandicapAccessOnly) && (
+            <div style={{ 
+              backgroundColor: '#ecfdf5',
+              borderRadius: '12px',
+              padding: '12px',
+              border: '1px solid #d1fae5'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '16px' }}>✅</span>
+                <span style={{ fontSize: '13px', fontWeight: '500', color: '#065f46' }}>
+                  {(() => {
+                    const totalFilters = activeFilters.length + (showFreeAccessOnly ? 1 : 0) + (showHandicapAccessOnly ? 1 : 0);
+                    const pointsCount = (filteredEquipments || getFilteredFeatures())?.features?.length || 0;
+                    return `${totalFilters} filtre(s) actif(s) • ${pointsCount} équipement(s) affiché(s)`;
+                  })()}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
