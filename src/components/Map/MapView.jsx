@@ -89,6 +89,12 @@ export default function MapView() {
   const [showMenu, setShowMenu] = useState(false); // ✅ AJOUTER LE STATE MENU
   const [showNavigation, setShowNavigation] = useState(false); // ✅ NOUVEAU STATE POUR LA NAVIGATION
 
+  // ✅ DÉFINIR arraysEqual EN PREMIER
+  const arraysEqual = useCallback((a, b) => {
+    if (a.length !== b.length) return false;
+    return a.every((val, index) => val === b[index]);
+  }, []);
+
   const handleSuggestionClick = useCallback((suggestion) => {
     console.log('🔍 Ajout du sport:', suggestion);
     
@@ -110,30 +116,26 @@ export default function MapView() {
     setSearchSuggestions([]);
   }, [activeFilters, searchParams, setSearchParams]);
 
+  // ✅ MAINTENANT useEffect peut utiliser arraysEqual
   useEffect(() => {
-    // ✅ GÉRER LES DEUX FORMATS D'URL : 'sport' (ancien) ET 'sports' (nouveau)
     const sportParam = searchParams.get('sport');
     const sportsParam = searchParams.get('sports');
     
-    // Déterminer quels sports à filtrer
     let sportsToFilter = [];
     
     if (sportsParam) {
-      // Nouveau format : sports=Tennis,Football,Basketball
       sportsToFilter = sportsParam.split(',').map(s => s.trim());
     } else if (sportParam) {
-      // Ancien format : sport=Tennis
       sportsToFilter = [sportParam.trim()];
     }
     
-    // ✅ ÉVITER LES MISES À JOUR INUTILES
+    // ✅ MAINTENANT arraysEqual EST DÉFINI
     if (sportsToFilter.length > 0 && sports && !arraysEqual(activeFilters, sportsToFilter)) {
       const validSports = sportsToFilter.filter(sport => sports.includes(sport));
       
       if (validSports.length > 0) {
         setActiveFilters(validSports);
         
-        // ✅ NETTOYER L'URL SEULEMENT SI NÉCESSAIRE
         if (sportParam && !sportsParam) {
           const newSearchParams = new URLSearchParams(searchParams);
           newSearchParams.delete('sport');
@@ -152,20 +154,17 @@ export default function MapView() {
     const zoom = searchParams.get('zoom');
 
     if (equipmentId && lat && lng && equipments) {
-      // Find the equipment in the data
       const equipment = equipments.features?.find(
         feature => feature.properties.id === equipmentId
       );
 
       if (equipment) {
-        // Set the popup info
         setPopupInfoEquipment({
           longitude: parseFloat(lng),
           latitude: parseFloat(lat),
           properties: equipment.properties
         });
 
-        // Update the map view
         setViewState(prevState => ({
           ...prevState,
           longitude: parseFloat(lng),
@@ -174,7 +173,7 @@ export default function MapView() {
         }));
       }
     }
-  }, [searchParams, sports, equipments]); // ✅ RETIRER setSearchParams ET activeFilters DES DÉPENDANCES
+  }, [searchParams, sports, equipments, arraysEqual, activeFilters]); // ✅ AJOUTER arraysEqual ET activeFilters
 
   // Ligne ~60-70, ajouter l'useEffect pour Escape :
   useEffect(() => {
