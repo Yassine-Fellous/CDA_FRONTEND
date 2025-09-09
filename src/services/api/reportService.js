@@ -184,82 +184,44 @@ class ReportService {
     }
   }
 
-  // Pour l'instant, pas d'endpoint d'upload d'images dans votre backend
-  // On simule ou on retourne null
   async uploadImages(images) {
     if (MOCK_MODE) {
       console.log('🧪 MODE TEST - Upload images:', images.length, 'images');
-      
       await this.mockDelay(1500);
       
-      // Simuler succès avec URLs mockées
       const mockUrls = images.map((_, index) => 
-        `https://mock-storage.example.com/reports/image_${Date.now()}_${index}.jpg`
+        `https://res.cloudinary.com/dzpsl9lfc/image/upload/v1234567890/sportmap/reports/mock_image_${index}.jpg`
       );
       
-      console.log('✅ Images uploadées:', mockUrls);
-      return mockUrls.join(','); // Votre backend semble attendre une string
+      console.log('✅ Images uploadées (mock):', mockUrls);
+      return mockUrls.join(',');
     }
 
     if (images.length === 0) return null;
 
-    // Vérifier si l'utilisateur est connecté pour l'upload
-    if (!this.isUserAuthenticated()) {
-      throw new Error('Vous devez être connecté pour uploader des images.');
-    }
-
-    // Pour l'instant, votre backend n'a pas d'endpoint d'upload d'images
-    // Vous pouvez soit :
-    // 1. Retourner null (pas d'images)
-    // 2. Convertir en base64 et inclure dans le message
-    // 3. Ajouter un endpoint d'upload plus tard
-
-    console.warn('⚠️ Endpoint d\'upload d\'images pas encore implémenté dans le backend');
-    console.warn('⚠️ Poursuite sans images');
-    return null;
-
-    // Si vous voulez implémenter l'upload plus tard, gardez ce code :
-    /*
     try {
-      const token = localStorage.getItem('authToken');
-
-      // Créer FormData pour l'upload des images
-      const formData = new FormData();
-      images.forEach((image, index) => {
-        formData.append(`image_${index}`, image.file);
-      });
-
-      console.log('📤 Upload images vers:', `${API_BASE_URL}/signalements/upload-images/`);
-
-      const response = await fetch(`${API_BASE_URL}/signalements/upload-images/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
-          throw new Error('Session expirée. Veuillez vous reconnecter.');
-        }
-        
-        throw new Error('Erreur lors de l\'upload des images');
-      }
-
-      const data = await response.json();
-      console.log('✅ Images uploadées:', data);
-      return data.images_url || data.url || data.urls;
+      console.log('📤 Upload vers Cloudinary...');
+      
+      // ✅ IMPORT DYNAMIQUE DU SERVICE CLOUDINARY
+      const { default: cloudinaryService } = await import('./cloudinary.js');
+      
+      // ✅ UPLOAD VIA CLOUDINARY
+      const uploadResults = await cloudinaryService.uploadMultipleImages(images);
+      
+      // ✅ EXTRAIRE LES URLs POUR LE BACKEND
+      const urls = cloudinaryService.extractUrls(uploadResults);
+      
+      console.log('✅ URLs Cloudinary récupérées:', urls);
+      
+      return urls;
       
     } catch (error) {
-      console.error('❌ Erreur upload images:', error);
-      // En cas d'erreur d'upload, continuer sans images plutôt que d'échouer complètement
+      console.error('❌ Erreur upload Cloudinary:', error);
+      
+      // ✅ GESTION GRACIEUSE - CONTINUER SANS IMAGES
       console.warn('⚠️ Poursuite sans images à cause de l\'erreur d\'upload');
       return null;
     }
-    */
   }
 
   // Pas d'endpoint pour récupérer les signalements utilisateur dans votre backend actuel
